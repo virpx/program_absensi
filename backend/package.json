@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "aes256": "^1.1.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "express": "^4.21.1",
+    "express-validator": "^7.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.3",
+    "node-rsa": "^1.1.1",
+    "npx": "^10.2.2",
+    "sequelize": "^6.37.5"
+  }
+}
