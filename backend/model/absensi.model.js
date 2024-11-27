@@ -9,6 +9,14 @@ const Absensi = sequelize.define('Absensi', {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    nama: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+    },
+    kelas: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
     status: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
