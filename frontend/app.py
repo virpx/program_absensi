@@ -291,45 +291,37 @@ root.geometry("1000x1000")
 login_frame = tk.Frame(root, bg="white")
 login_frame.pack(fill="both", expand=True)
 
-# Kiri frame
-left_frame = tk.Frame(login_frame, bg="white", width=400)  # Lebar dikurangi
-left_frame.pack(fill="both", side="left")  # Hapus padding horizontal (padx)
+# Sub-frame untuk memusatkan isi
+center_frame = tk.Frame(login_frame, bg="white")
+center_frame.pack(expand=True, padx=20, pady=20)
 
-# Tambahkan gambar ke kiri frame
+# Gambar di tengah
 try:
     original_image = Image.open("assets/login_image.png")
-    resized_image = original_image.resize((300, 300))  # Ukuran gambar lebih kecil agar proporsional
+    resized_image = original_image.resize((250, 250))  # Sesuaikan ukuran gambar
     photo = ImageTk.PhotoImage(resized_image)
-    image_label = tk.Label(left_frame, image=photo, borderwidth=0, highlightthickness=0, bg="white")
-    image_label.pack(expand=True)  # Posisi di tengah secara vertikal
+    image_label = tk.Label(center_frame, image=photo, borderwidth=0, highlightthickness=0, bg="white")
+    image_label.grid(row=0, column=0, padx=20, rowspan=3)  # Gambar menempati posisi kiri
 except Exception as e:
-    error_label = tk.Label(left_frame, text="Gambar tidak ditemukan!", fg="red", bg="white")
-    error_label.pack(expand=True)  # Posisi di tengah secara vertikal
+    error_label = tk.Label(center_frame, text="Gambar tidak ditemukan!", fg="red", bg="white")
+    error_label.grid(row=0, column=0, padx=20, rowspan=3)
 
-# Inisiasi font
-label_font = tkFont.Font(family="Helvetica", size=20, weight="bold")
-entry_font = tkFont.Font(family="Helvetica", size=12)
-button_font = tkFont.Font(family="Helvetica", size=12, weight="bold")
-
-# Kanan frame
-right_frame = tk.Frame(login_frame, bg="white", width=400)  # Lebar dikurangi
-right_frame.pack(fill="both", side="right")  # Hapus padding horizontal (padx)
-
-# Sub-frame untuk memusatkan isi
-center_frame = tk.Frame(right_frame, bg="white")
-center_frame.pack(expand=True)  # Isi diatur agar berada di tengah secara vertikal dan horizontal
+# Sub-frame kanan untuk form login
+form_frame = tk.Frame(center_frame, bg="white")
+form_frame.grid(row=0, column=1, padx=20, sticky="n")
 
 # Judul
-title_label = tk.Label(center_frame, text="Login as an Admin User", font=label_font, bg="#F9F9F9", fg="#6F42C1")
+label_font = tkFont.Font(family="Helvetica", size=20, weight="bold")
+title_label = tk.Label(form_frame, text="Login as Admin", font=label_font, bg="white", fg="#6F42C1")
 title_label.pack(pady=(20, 20))
 
 # Frame untuk input email
-email_frame = tk.Frame(center_frame, bg="#F9F9F9")
-email_frame.pack(pady=(10, 10))
+email_frame = tk.Frame(form_frame, bg="white")
+email_frame.pack(pady=(10, 10), fill="x")
 
 # Email icon
-email_icon = tk.Label(email_frame, text="👤", font=entry_font, bg="#F9F9F9", fg="#6F42C1")
-email_icon.pack(side=tk.LEFT, padx=(0, 10))
+email_icon = tk.Label(email_frame, text="👤", font=("Helvetica", 14), bg="white", fg="#6F42C1")
+email_icon.pack(side=tk.LEFT, padx=(10, 10))
 
 # Email entry
 email_entry = tk.Entry(
@@ -343,16 +335,15 @@ email_entry = tk.Entry(
     relief="solid",
     bd=1
 )
-email_entry.insert(0, "")
-email_entry.pack(side=tk.LEFT)
+email_entry.pack(side=tk.LEFT, fill="x", expand=True, padx=(0, 10), ipady=5)
 
-# Frame untuk input password (diatur vertikal)
-password_frame = tk.Frame(center_frame, bg="#F9F9F9")
-password_frame.pack(pady=(10, 20))
+# Frame untuk input password
+password_frame = tk.Frame(form_frame, bg="white")
+password_frame.pack(pady=(10, 20), fill="x")
 
 # Password icon
-password_icon = tk.Label(password_frame, text="🔒", font=entry_font, bg="#F9F9F9", fg="#6F42C1")
-password_icon.pack(side=tk.LEFT, padx=(0, 10))
+password_icon = tk.Label(password_frame, text="🔒", font=("Helvetica", 14), bg="white", fg="#6F42C1")
+password_icon.pack(side=tk.LEFT, padx=(10, 10))
 
 # Password entry
 password_entry = tk.Entry(
@@ -367,18 +358,25 @@ password_entry = tk.Entry(
     bd=1,
     show="*"
 )
-password_entry.insert(0, "")
-password_entry.pack(side=tk.LEFT)
+password_entry.pack(side=tk.LEFT, fill="x", expand=True, padx=(0, 10), ipady=5)
 
 # Login button
-login_btn = tk.Canvas(center_frame, width=110, height=50, bg="white", highlightthickness=0)
-login_btn.pack(pady=(20, 0))  # Jarak antara password dan tombol login
-create_rounded_button(login_btn, x=5, y=5, width=100, height=40, radius=20, text="LOGIN", command=login)
+button_frame = tk.Frame(form_frame, bg="white")  # Sub-frame untuk memisahkan tombol
+button_frame.pack(pady=(5, 0), fill="x")  # Tambahkan padding di atas tombol
 
-# login_button = tk.Button(center_frame, text="LOGIN", command=login, font=button_font, 
-#                          fg="#FFFFFF", bg="#6F42C1", width=20, height=2, relief="flat")
-# login_button.pack(pady=(10, 10))
-
+# Tombol login
+login_btn = tk.Canvas(button_frame, width=110, height=50, bg="white", highlightthickness=0)
+login_btn.pack(anchor="center", pady=(4, 0))  # Centering tombol login dan beri padding bawah
+create_rounded_button(
+    login_btn,
+    x=5,
+    y=5,
+    width=100,
+    height=40,
+    radius=20,
+    text="LOGIN",
+    command=login
+)
 
 # Frame QR Code
 qr_frame = tk.Frame(root , bg="white")
