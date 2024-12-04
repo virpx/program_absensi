@@ -332,8 +332,30 @@ app.post("/insertlistsiswa", [
             data: "Harap buat tahun ajaran baru sebelum melakukan insert siswa"
         })
     }
-    if (data == "go_insert_siswa") {
-
+    data2 = data.split("#")
+    if (data2[0] == "go_insert_siswa") {
+        await ListSiswa.truncate()
+        try{
+            listsiswa = JSON.parse(atob(data2[1]))
+            for (const iterator of listsiswa) {
+                await ListSiswa.create({
+                    nisn: iterator.nisn,
+                    nama: iterator.nama,
+                    no_ortu: iterator.no_ortu,
+                    no_walas: iterator.no_walas,
+                    kelas: iterator.kelas,
+                })
+            }
+        }catch{
+            return res.status(400).send({
+                success: 0,
+                data: "Error menambahkan siswa"
+            })
+        }
+        return res.status(200).send({
+            success: 1,
+            data: "Berhasil menambahkan siswa"
+        })
     } else {
         return res.status(400).send({
             success: 0,
