@@ -1,6 +1,7 @@
 import time
 import pyqrcode
 import tkinter as tk
+from tkinter import ttk
 from tkinter import font as tkFont
 from tkinter import font
 from tkinter import messagebox ,filedialog
@@ -148,6 +149,11 @@ def check_login_status():
 def go_back():
     qr_frame.pack_forget()
     login_frame.pack(fill="both", expand=True)
+
+# Fungsi untuk ke halaman report
+def to_report():
+    menu_frame.pack_forget()
+    report_frame.pack(fill="both", expand=True)
 
 # Fungsi untuk kembali ke halaman login
 def go_login():
@@ -455,7 +461,7 @@ except FileNotFoundError:
 # Tombol Riport di halaman Menu
 riport = tk.Canvas(tengah_tengah_frame, width=110, height=50, bg="white", highlightthickness=0)
 riport.place(relx=0.50, rely=0.85, anchor="center") 
-create_rounded_button(riport, x=5, y=5, width=100, height=40, radius=20, text="Riport", command="")
+create_rounded_button(riport, x=5, y=5, width=100, height=40, radius=20, text="Riport", command=to_report)
 
 # Load Gambar
 try:
@@ -633,6 +639,105 @@ create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, t
 # Frame update presensi kehadiran siswa
 
 # Frame Riport
+report_frame = tk.Frame(root, bg="#f8f9fa", highlightbackground="#ced4da", highlightthickness=1)
+
+# Header label
+header_label = tk.Label(report_frame, text="Export Attendance", font=("Helvetica", 18, "bold"), bg="#f8f9fa", fg="#495057")
+header_label.pack(pady=(20, 10))
+
+# Time interval label
+interval_label = tk.Label(report_frame, text="Jangka Waktu", font=("Helvetica", 12, "bold"), bg="#f8f9fa", fg="#6c757d")
+interval_label.pack(anchor="w", padx=20)
+
+# Frame untuk tombol interval waktu
+interval_frame = tk.Frame(report_frame, bg="#f8f9fa")
+interval_frame.pack(pady=10, padx=20, anchor="w")
+
+# Tombol interval waktu
+btn_mingguan = tk.Button(interval_frame, text="Mingguan", font=("Helvetica", 10), bg="#e9ecef", fg="#333", relief="flat", borderwidth=1, padx=10, pady=5)
+btn_mingguan.pack(side="left", padx=5)
+
+btn_bulanan = tk.Button(interval_frame, text="Bulanan", font=("Helvetica", 10), bg="#e9ecef", fg="#333", relief="flat", borderwidth=1, padx=10, pady=5)
+btn_bulanan.pack(side="left", padx=5)
+
+btn_semester = tk.Button(interval_frame, text="Semester", font=("Helvetica", 10), bg="#e9ecef", fg="#333", relief="flat", borderwidth=1, padx=10, pady=5)
+btn_semester.pack(side="left", padx=5)
+
+# Frame untuk tabel data kehadiran
+table_frame = tk.Frame(report_frame, bg="#f8f9fa")
+table_frame.pack(pady=20, padx=20, fill="both", expand=True)
+
+# Gaya khusus untuk tabel
+style = ttk.Style()
+style.theme_use("clam")
+style.configure("Treeview",
+                background="#ffffff",
+                foreground="#000000",
+                rowheight=25,
+                fieldbackground="#ffffff")
+style.map("Treeview",
+          background=[("selected", "#6c757d")],
+          foreground=[("selected", "white")])
+style.configure("Treeview.Heading",
+                font=("Helvetica", 11, "bold"),
+                background="#495057",
+                foreground="white",
+                borderwidth=1)
+
+# Widget Treeview untuk tabel
+columns = ("No", "Nama", "Hadir", "Ijin", "Alpha")
+table = ttk.Treeview(table_frame, columns=columns, show="headings", height=8)
+table.pack(fill="both", expand=True)
+
+# Tentukan kolom dan lebar tabel
+for col in columns:
+    table.heading(col, text=col)
+    table.column(col, anchor="center", width=100)
+
+# Warna alternatif untuk baris
+table.tag_configure("evenrow", background="#f8f9fa")
+table.tag_configure("oddrow", background="#ffffff")
+
+# Masukkan data sampel ke dalam tabel
+sample_data = [
+    (1, "Student 1", "01/01/2023", "01/07/2023", "Hadir"),
+    (2, "Student 2", "12/25/2022", "01/07/2023", "Ijin"),
+    (3, "Student 3", "12/09/2022", "01/07/2023", "Alpha"),
+]
+
+for index, row in enumerate(sample_data):
+    tag = "evenrow" if index % 2 == 0 else "oddrow"
+    table.insert("", "end", values=row, tags=(tag,))
+
+# Tombol Export to PDF
+try:
+    icon = tk.PhotoImage(file="assets/pdf_icon.png")  # Pastikan file ada
+    export_btn = tk.Button(
+        report_frame,
+        text="Export to PDF",
+        image=icon,
+        compound="left",
+        font=("Helvetica", 12, "bold"),
+        borderwidth=1,
+        bg="#e0aaff",
+        fg="black",
+        padx=10,
+        pady=5
+    )
+    export_btn.pack(pady=20)
+    export_btn.image = icon  # Simpan referensi agar tidak garbage-collected
+except Exception as e:
+    export_btn = tk.Button(
+        report_frame,
+        text="Export to PDF",
+        font=("Helvetica", 12, "bold"),
+        borderwidth=1,
+        bg="#e0aaff",
+        fg="black",
+        padx=10,
+        pady=5
+    )
+    export_btn.pack(pady=20)
 
 # Menangani event ketika aplikasi ditutup
 root.protocol("WM_DELETE_WINDOW", on_closing)
