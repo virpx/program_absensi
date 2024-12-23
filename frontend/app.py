@@ -739,6 +739,8 @@ except Exception as e:
     )
     export_btn.pack(pady=20)
 
+
+
 # Menangani event ketika aplikasi ditutup
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
