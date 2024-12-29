@@ -1,7 +1,7 @@
 import time
 import pyqrcode
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from tkinter import font as tkFont
 from tkinter import font
 from tkinter import messagebox ,filedialog
@@ -13,6 +13,11 @@ import io
 import re
 import pandas
 import requests
+from tkinter import filedialog
+from openpyxl import load_workbook
+import json
+import base64
+import pandas as pd
 
 # Inisialisasi driver di luar fungsi agar dapat diakses secara global
 driver = None
@@ -20,121 +25,6 @@ driver = None
 btnsave = None
 list_entry_add_siswa = []
 
-# Fungsi untuk mengambil dan menampilkan QR code di Tkinter
-def fetch_and_show_qr_code():
-    global driver, qr_label
-    try:
-        # Konfigurasi headless browser menggunakan Chrome
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument('--disable-dev-shm-usage')
-
-        # Inisialisasi WebDriver
-        driver = webdriver.Chrome(options=chrome_options)
-        driver.get("https://web.whatsapp.com/")
-        
-        # Tunggu sebentar agar halaman selesai dimuat
-        time.sleep(4)
-        
-        # Tunggu elemen dengan atribut data-ref muncul
-        qr_element = driver.find_element("css selector", "div[data-ref]")
-
-        # Dapatkan nilai dari atribut data-ref
-        data_ref = qr_element.get_attribute("data-ref")
-        
-        # Buat QR code dari data-ref
-        qr_code = pyqrcode.create(data_ref)
-
-        # Simpan QR code ke dalam stream gambar PNG
-        buffer = io.BytesIO()
-        qr_code.png(buffer, scale=6)
-        buffer.seek(0)
-
-        # Buka gambar menggunakan PIL dan konversi ke format yang bisa digunakan di Tkinter
-        qr_image = Image.open(buffer)
-        qr_image_tk = ImageTk.PhotoImage(qr_image)
-
-        # Jika ada QR code yang sudah ditampilkan sebelumnya, hapus
-        if qr_label is not None:
-            qr_label.destroy()
-
-        # Label untuk menampilkan gambar QR code di Tkinter
-        qr_label = tk.Label(qr_frame, image=qr_image_tk)
-        qr_label.image = qr_image_tk  
-        qr_label.pack(pady=20)
-
-    except Exception as e:
-        messagebox.showerror("Error", f"Gagal mengambil QR Code: {str(e)}")
-
-# Fungsi ketika tombol login ditekan
-# def login():
-#     userid = username_entry.get()
-#     password = password_entry.get()
-
-#     # Prepare data to send to the backend
-#     data = {
-#         "username": userid,
-#         "password": password
-#     }
-
-#     try:
-#         # Send POST request to the Node.js login endpoint
-#         response = requests.post("http://localhost:3000/login", json=data)
-
-#         # Check the response from the server
-#         if response.status_code == 200:
-#             result = response.json()
-#             if result.get("success") == 1:
-#                 token = result.get("data")  # Retrieve the JWT token
-#                 messagebox.showinfo("Login Success", "Login successful!")
-                
-#                 # Clear the login form
-#                 username_entry.delete(0, tk.END)
-#                 password_entry.delete(0, tk.END)
-                
-#                 # Switch to the next frame or functionality
-#                 login_frame.pack_forget()
-#                 menu_frame.pack(fill="both", expand=True)
-
-#                 # Print the token for debugging purposes (you can store it securely if needed)
-#                 print("Token:", token)
-
-#             else:
-#                 messagebox.showerror("Login Failed", "Invalid credentials")
-#         else:
-#             # If the server returned an error response
-#             error_message = response.json().get("errors", [{"msg": "Unknown error"}])[0]["msg"]
-#             messagebox.showerror("Login Failed", error_message)
-
-#     except requests.exceptions.RequestException as e:
-#         # Handle connection errors
-#         messagebox.showerror("Error", f"Failed to connect to the backend: {e}")
-def login():
-    userid = email_entry.get()
-    password = password_entry.get()
-
-    if userid == "admin" and password == "admin":
-        # Pindah ke frame QR Code
-        email_entry.delete(0, tk.END)
-        password_entry.delete(0, tk.END)
-        login_frame.pack_forget()
-        menu_frame.pack(fill="both", expand=True)
-        # fetch_and_show_qr_code()
-    else:
-        messagebox.showerror("Login Failed", "Invalid username or password")
-
-# Fungsi untuk menampilkan QR Code dan cek login       
-def qrcode():
-    menu_frame.pack_forget()
-    qr_frame.pack(fill="both", expand=True)
-    fetch_and_show_qr_code()
-    check_login_status()
-
-# Fungsi untuk exit       
-def exite():
-    menu_frame.pack_forget()
-    login_frame.pack(fill="both", expand=True)
 
 # Fungsi untuk mengecek login setiap beberapa detik
 def check_login_status():
@@ -144,21 +34,6 @@ def check_login_status():
     else:
         # Cek lagi dalam 5 detik
         root.after(5000, check_login_status)
-
-# Fungsi untuk kembali ke halaman login
-def go_back():
-    qr_frame.pack_forget()
-    login_frame.pack(fill="both", expand=True)
-
-# Fungsi untuk ke halaman report
-def to_report():
-    menu_frame.pack_forget()
-    report_frame.pack(fill="both", expand=True)
-
-# Fungsi untuk kembali ke halaman login
-def go_login():
-    absen_frame.pack_forget()
-    login_frame.pack(fill="both", expand=True)    
 
 # Fungsi yang dipanggil saat jendela Tkinter ditutup
 def on_closing():
@@ -186,6 +61,7 @@ data_siswa = [
 ]
 
 # Cek qrcode absen
+
 def on_key_release(event):
     current_text = nik_entry.get()
 
@@ -228,37 +104,7 @@ def sanitize_phone_number(phone):
         phone = phone[1:]  
     return str(phone)
 
-def open_file_dialog():
-    """Buka file dialog untuk memilih file Excel dan load data."""
-    file_path = filedialog.askopenfilename(
-        title="Select an Excel File",
-        filetypes=(("Excel files", "*.xls *.xlsx"), ("All files", "*.*"))
-    )
-    readata = pandas.read_excel(file_path)
-    list_entry_add_siswa.clear()
-    btnsave['state'] = tk.NORMAL 
 
-    # Membuat entry grid berdasarkan jumlah data dari Excel
-    for cntr in range(len(readata["nisn"])):
-        list2 = []
-        for i, col in enumerate(["nisn", "nama", "no hp ortu", "no hp walas", "kelas"]):
-            entry = tk.Entry(tambahsiswa_frame, justify='center', width=20)
-            entry.grid(column=i, row=2 + cntr)
-            entry.insert(0, sanitize_phone_number(str(readata[col][cntr])) if 'no hp' in col else str(readata[col][cntr]))
-            list2.append(entry)
-        list_entry_add_siswa.append(list2)
-
-def tambahSiswa():
-    databases_frame.pack_forget()
-    tambahsiswa_frame.pack(fill="both", expand=True)
-
-def todata():
-    menu_frame.pack_forget()
-    databases_frame.pack(fill="both", expand=True)
-
-def tomenudatabase():
-    tambahsiswa_frame.pack_forget()
-    menu_frame.pack(fill="both", expand=True)
 
 # Fungsi untuk membuat tombol melingkar
 def create_rounded_button(canvas, x, y, width, height, radius, text, command=None):
@@ -293,9 +139,25 @@ root.title("WhatsApp Web QR Code Fetcher")
 # Ukuran window
 root.geometry("1000x1000")
 
-# Frame Login
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Login # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
+def login():
+    userid = email_entry.get()
+    password = password_entry.get()
+
+    if userid == "admin" and password == "admin":
+        # Pindah ke frame QR Code
+        email_entry.delete(0, tk.END)
+        password_entry.delete(0, tk.END)
+        login_frame.pack_forget()
+        menu_frame.pack(fill="both", expand=True)
+        # fetch_and_show_qr_code()
+    else:
+        messagebox.showerror("Login Failed", "Invalid username or password")
+
 login_frame = tk.Frame(root, bg="white")
-login_frame.pack(fill="both", expand=True)
+# login_frame.pack(fill="both", expand=True)
 
 # Sub-frame untuk memusatkan isi
 center_frame = tk.Frame(login_frame, bg="white")
@@ -384,7 +246,61 @@ create_rounded_button(
     command=login
 )
 
-# Frame QR Code
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame QR Code # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Fungsi untuk kembali ke halaman login
+def go_back():
+    qr_frame.pack_forget()
+    login_frame.pack(fill="both", expand=True)
+
+# Fungsi untuk mengambil dan menampilkan QR code di Tkinter
+def fetch_and_show_qr_code():
+    global driver, qr_label
+    try:
+        # Konfigurasi headless browser menggunakan Chrome
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument('--disable-dev-shm-usage')
+
+        # Inisialisasi WebDriver
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.get("https://web.whatsapp.com/")
+        
+        # Tunggu sebentar agar halaman selesai dimuat
+        time.sleep(4)
+        
+        # Tunggu elemen dengan atribut data-ref muncul
+        qr_element = driver.find_element("css selector", "div[data-ref]")
+
+        # Dapatkan nilai dari atribut data-ref
+        data_ref = qr_element.get_attribute("data-ref")
+        
+        # Buat QR code dari data-ref
+        qr_code = pyqrcode.create(data_ref)
+
+        # Simpan QR code ke dalam stream gambar PNG
+        buffer = io.BytesIO()
+        qr_code.png(buffer, scale=6)
+        buffer.seek(0)
+
+        # Buka gambar menggunakan PIL dan konversi ke format yang bisa digunakan di Tkinter
+        qr_image = Image.open(buffer)
+        qr_image_tk = ImageTk.PhotoImage(qr_image)
+
+        # Jika ada QR code yang sudah ditampilkan sebelumnya, hapus
+        if qr_label is not None:
+            qr_label.destroy()
+
+        # Label untuk menampilkan gambar QR code di Tkinter
+        qr_label = tk.Label(qr_frame, image=qr_image_tk)
+        qr_label.image = qr_image_tk  
+        qr_label.pack(pady=20)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Gagal mengambil QR Code: {str(e)}")
+
+
 qr_frame = tk.Frame(root , bg="white")
 
 # Variabel untuk label gambar QR code
@@ -399,7 +315,29 @@ description_label.pack(pady=10)
 back_button = tk.Button(qr_frame, text="Back", command=go_back , bg="#4CAF50", fg="black", font=("Arial", 12, "bold"))
 back_button.pack(pady=20)
 
-# Frame Menu
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Menu # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+def todata():
+    menu_frame.pack_forget()
+    databases_frame.pack(fill="both", expand=True)
+
+# Fungsi untuk ke halaman report
+def to_report():
+    menu_frame.pack_forget()
+    report_frame.pack(fill="both", expand=True)
+
+# Fungsi untuk exit       
+def exite():
+    menu_frame.pack_forget()
+    login_frame.pack(fill="both", expand=True)
+
+# Fungsi untuk menampilkan QR Code dan cek login       
+def qrcode():
+    menu_frame.pack_forget()
+    qr_frame.pack(fill="both", expand=True)
+    fetch_and_show_qr_code()
+    check_login_status()
+
 menu_frame = tk.Frame(root, bg="white")
 # menu_frame.pack(fill="both", expand=True)
 
@@ -484,7 +422,14 @@ exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlig
 exited_canvas.place(relx=0.85, rely=0.25, anchor="center") 
 create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, text="Exit", command=exite)
 
-# Frame Absensi
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Absensi # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Fungsi untuk kembali ke halaman login
+def go_login():
+    absen_frame.pack_forget()
+    login_frame.pack(fill="both", expand=True)    
+
+
 absen_frame = tk.Frame(root,bg="white")
 # absen_frame.pack(fill="both", expand=True)
 
@@ -548,7 +493,8 @@ back_canvas.place(relx=0.5, rely=0.6, anchor="center")  # Posisi di tengah secar
 # Membuat tombol "Back" melingkar
 create_rounded_button(back_canvas, x=5, y=5, width=90, height=40, radius=20, text="Back", command=go_login)
 
-# Frame Database
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Database # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 databases_frame = tk.Frame(root)
 
 # Palet warna utama
@@ -632,14 +578,207 @@ exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlig
 exited_canvas.place(relx=0.85, rely=0.25, anchor="center") 
 create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, text="Exit", command="")
 
-# Frame input data list siswa
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame input data list siswa # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Frame backup database
+base64save = None;
+def loadexcel():
+    global base64save
+    file_path = filedialog.askopenfilename(
+        filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")]
+    )
+    if not file_path:
+        return  # No file selected
 
-# Frame update presensi kehadiran siswa
+    try:
+        workbook = load_workbook(file_path)
+        sheet = workbook.active  # Load the active sheet
 
-# Frame Riport
+        # Clear the existing table
+        for row in tree.get_children():
+            tree.delete(row)
+        tree["columns"] = []
+
+        # Load the header and rows
+        headers = [cell.value for cell in sheet[1]]
+        tree["columns"] = headers
+        for header in headers:
+            tree.heading(header, text=header)
+            tree.column(header, width=100, anchor=tk.W)
+
+        data = []
+        for row in sheet.iter_rows(min_row=2, values_only=True):
+            tree.insert("", "end", values=row)
+            data.append(dict(zip(headers, row)))
+
+        # Save data to a JSON file
+        json_file_path = "data.json"
+        with open(json_file_path, "w", encoding="utf-8") as json_file:
+            json.dump(data, json_file, indent=4)
+        
+        # Encode JSON file content to Base64
+        with open(json_file_path, "rb") as json_file:
+            encoded_data = base64.b64encode(json_file.read()).decode("utf-8")
+        
+        # Print encoded data to the terminal
+        print("Base64 Encoded Data:")
+        print(encoded_data)
+        base64save = encoded_data
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to load file: {e}")
+def savedata():
+    payload = {
+        "login": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzM0NjY0MDksImRhdGEiOiJhZG1pbmxvZ2luIiwiaWF0IjoxNzMzMzgwMDA5fQ.FlF-DqJHpnniS-wElqGw1sDTUFWH1x00cOlnDO4Owxo",
+        "data":"get_backup_data"
+    }
+    response = requests.post("http://localhost:3000/backupkelas9", data=payload)
+    response = json.loads(response.text)
+    if response["success"] == 1:
+        df = pd.DataFrame(response["data"]["list"])
+        output_file = "Backup Kelas 9 "+str(response["data"]["tahunajar"])+".xlsx"
+        df.to_excel(output_file, index=False)
+        payload = {
+            "login": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzM0NjY0MDksImRhdGEiOiJhZG1pbmxvZ2luIiwiaWF0IjoxNzMzMzgwMDA5fQ.FlF-DqJHpnniS-wElqGw1sDTUFWH1x00cOlnDO4Owxo",
+            "data":"go_insert_siswa#"+base64save
+        }
+        response = requests.post("http://localhost:3000/insertlistsiswa", data=payload)
+        print(response.text)
+        messagebox.showinfo("Success", "Data loaded and encoded successfully!")
+
+# Frame utama
+input_frame = tk.Frame(root, bg="white")
+input_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+# Label Judul
+title_label = tk.Label(input_frame, text="Input Data dari Excel", font=("Arial", 16, "bold"), bg="white", fg="#800080")
+title_label.pack(pady=10)
+
+# Tombol untuk memuat file Excel
+load_button = ttk.Button(input_frame, text="Load Excel File", command=loadexcel)
+load_button.pack(pady=10)
+
+# Tombol untuk menyimpan data
+save_button = ttk.Button(input_frame, text="Save Data", command=savedata)
+save_button.pack(pady=10)
+
+# Tabel untuk menampilkan data
+tree_frame = tk.Frame(input_frame, bg="white")
+tree_frame.pack(fill="both", expand=True, pady=10)
+
+tree = ttk.Treeview(tree_frame, show="headings")
+tree.pack(side="left", fill="both", expand=True)
+
+# Scrollbar untuk tabel
+scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
+scrollbar.pack(side="right", fill="y")
+tree.configure(yscrollcommand=scrollbar.set)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame backup database # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame update presensi kehadiran siswa # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Data contoh siswa
+siswa_data = [
+    {"id": 1, "nama": "Ahmad Setiawan"},
+    {"id": 2, "nama": "Budi Santoso"},
+    {"id": 3, "nama": "Citra Lestari"},
+    {"id": 4, "nama": "Dewi Kurnia"},
+    {"id": 5, "nama": "Eka Prasetyo"}
+]
+
+# Fungsi untuk mencari siswa
+def search_siswa():
+    search_query = search_entry.get().lower()
+    for widget in result_frame.winfo_children():
+        widget.destroy()
+
+    found_siswa = [siswa for siswa in siswa_data if search_query in siswa["nama"].lower()]
+    if found_siswa:
+        for siswa in found_siswa:
+            display_siswa(siswa)
+    else:
+        tk.Label(result_frame, text="Siswa tidak ditemukan.", fg="red", bg="white").pack(pady=5)
+
+# Fungsi untuk menampilkan siswa dengan checkbox
+def display_siswa(siswa):
+    siswa_frame = tk.Frame(result_frame, bg="white")
+    siswa_frame.pack(fill="x", pady=5)
+
+    name_label = tk.Label(siswa_frame, text=siswa["nama"], bg="white", fg="black")
+    name_label.pack(side="left", padx=10)
+
+    # Checkbox
+    masuk_var = tk.BooleanVar()
+    izin_var = tk.BooleanVar()
+    absen_var = tk.BooleanVar()
+
+    def on_check(var):
+        if var == "masuk":
+            izin_var.set(False)
+            absen_var.set(False)
+        elif var == "izin":
+            masuk_var.set(False)
+            absen_var.set(False)
+        elif var == "absen":
+            masuk_var.set(False)
+            izin_var.set(False)
+
+    masuk_checkbox = tk.Checkbutton(siswa_frame, text="Masuk", variable=masuk_var, command=lambda: on_check("masuk"), bg="white", fg="black")
+    izin_checkbox = tk.Checkbutton(siswa_frame, text="Izin", variable=izin_var, command=lambda: on_check("izin"), bg="white",fg="black")
+    absen_checkbox = tk.Checkbutton(siswa_frame, text="Absen", variable=absen_var, command=lambda: on_check("absen"), bg="white",fg="black")
+
+    masuk_checkbox.pack(side="left", padx=5)
+    izin_checkbox.pack(side="left", padx=5)
+    absen_checkbox.pack(side="left", padx=5)
+
+    # Tombol Save menggunakan ttk.Button
+    def save_attendance():
+        status = "Belum dipilih"
+        if masuk_var.get():
+            status = "Masuk"
+        elif izin_var.get():
+            status = "Izin"
+        elif absen_var.get():
+            status = "Absen"
+        messagebox.showinfo("Status Kehadiran", f"Nama: {siswa['nama']}\nStatus: {status}")
+
+    save_button = ttk.Button(siswa_frame, text="Save", command=save_attendance, style="Purple.TButton")
+    save_button.pack(side="left", padx=10)
+
+# Styling tombol dengan ttk
+style = ttk.Style()
+style.configure("Purple.TButton", background="#800080", foreground="white", font=("Arial", 10))
+style.map("Purple.TButton",
+          background=[("active", "#5a005a")],
+          foreground=[("active", "white")])
+
+# Frame Utama
+update_frame = tk.Frame(root, bg="white")
+# update_frame.pack(fill="both", expand=True)
+
+# Label Judul
+title_label = tk.Label(update_frame, text="Update Kehadiran Siswa", font=("Arial", 16, "bold"), bg="white", fg="#800080")
+title_label.pack(pady=10)
+
+# Search Bar
+search_frame = tk.Frame(update_frame, bg="white")
+search_frame.pack(fill="x", pady=10)
+
+search_label = tk.Label(search_frame, text="Cari Siswa:", bg="white", fg="black")
+search_label.pack(side="left", padx=(0, 10))
+
+search_entry = tk.Entry(search_frame)
+search_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
+
+search_button = ttk.Button(search_frame, text="Search", command=search_siswa, style="Purple.TButton")
+search_button.pack(side="left")
+
+# Frame untuk menampilkan hasil
+result_frame = tk.Frame(update_frame, bg="white")
+result_frame.pack(fill="x", pady=10)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Riport # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 report_frame = tk.Frame(root, bg="#f8f9fa", highlightbackground="#ced4da", highlightthickness=1)
+# report_frame.pack(fill="both", expand=True)
 
 # Header label
 header_label = tk.Label(report_frame, text="Export Attendance", font=("Helvetica", 18, "bold"), bg="#f8f9fa", fg="#495057")
@@ -738,6 +877,7 @@ except Exception as e:
         pady=5
     )
     export_btn.pack(pady=20)
+
 
 
 
