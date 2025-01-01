@@ -766,11 +766,25 @@ try:
 except FileNotFoundError:
     error_label = tk.Label(tengah_tengah_frame, text="Gambar tidak ditemukan!", fg="red", bg="white")
     error_label.pack(pady=20)
-
+def gobackupdata():
+    payload = {
+        "login": tokenlogin,
+        "data":"get_backup_data"
+    }
+    response = requests.get("http://localhost:3000/backupdatabase", data=payload)
+    response = json.loads(response.text)
+    if response["success"] == 1:
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        df = pd.DataFrame(response["data"])
+        output_file = "Backup Database "+current_date+".xlsx"
+        df.to_excel(pilih_folder("Pilih Folder Backup Database")+"/"+output_file, index=False)
+        messagebox.showinfo("Success","Berhasil Backup Data!")
+    else:
+        messagebox.showerror("Error",response["data"])
 # Tombol Riport di halaman Menu
 riport = tk.Canvas(tengah_tengah_frame, width=150, height=50, bg="white", highlightthickness=0)
 riport.place(relx=0.50, rely=0.65, anchor="center") 
-create_rounded_button(riport, x=5, y=5, width=140, height=40, radius=20, text="Backup Database", command="")
+create_rounded_button(riport, x=5, y=5, width=140, height=40, radius=20, text="Backup Database", command=lambda:gobackupdata())
 
 
 # Tombol Exit di pojok kanan bawah pada bawah_frame
@@ -1169,7 +1183,7 @@ back_button.pack(pady=10)
 # Menangani event ketika aplikasi ditutup
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
-show_frame(report_frame) 
+show_frame(backup_frame) 
 
 # Jalankan aplikasi
 root.mainloop()
