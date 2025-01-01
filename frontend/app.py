@@ -758,7 +758,7 @@ bawah_frame.pack(side="bottom", fill="x", padx=20, pady=10)
 
 # Load Gambar
 try:
-    image_path = "assets/reicon.png"  # Pastikan jalur sesuai dengan lokasi file gambar Anda
+    image_path = "assets/datta.png"  # Pastikan jalur sesuai dengan lokasi file gambar Anda
     loaded_image = load_image(image_path, 250, 250)  # Mengatur ukuran gambar
     img_label = tk.Label(tengah_tengah_frame, image=loaded_image, bg="white")
     img_label.image = loaded_image  # Menyimpan referensi agar tidak dihapus oleh garbage collector
