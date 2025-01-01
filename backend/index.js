@@ -50,11 +50,15 @@ async function generateabsen() {
     })
     if (cekdata.length == 0) {
         var ambillistsiswa = await ListSiswa.findAll()
+        var getlast = await TahunAjar.findOne({
+            order: [['tahun', 'DESC']]
+        })
         for (const iterator of ambillistsiswa) {
             await Absensi.create({
                 nisn: iterator["nisn"],
                 nama: iterator["nama"],
                 kelas: iterator["kelas"],
+                tahunpelajaran:getlast.tahun,
                 status: 0,
                 untuktanggal: gettanggal(1)
             })

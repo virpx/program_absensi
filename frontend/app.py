@@ -651,7 +651,7 @@ def savedata():
     if response["success"] == 1:
         df = pd.DataFrame(response["data"]["list"])
         output_file = "Backup Kelas 9 "+str(response["data"]["tahunajar"])+".xlsx"
-        df.to_excel(pilih_folder("Tempat Simpan File Backup Kelas 9")+output_file, index=False)
+        df.to_excel(pilih_folder("Tempat Simpan File Backup Kelas 9")+"/"+output_file, index=False)
         payload = {
             "login": tokenlogin,
             "data":"go_insert_siswa#"+base64save
