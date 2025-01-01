@@ -653,6 +653,7 @@ def savedata():
         response = json.loads(response.text)
         if response["success"] == 1:
             messagebox.showinfo("Success", "Berhasil Menambahkan Data")
+            show_frame(menu_frame)
         else:
             if response["data"] == "err_tahunajar":
                 tanyabuat = messagebox.askyesno("Konfirmasi", "Apakah ingin membuat tahun ajar baru?")
