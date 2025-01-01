@@ -355,11 +355,6 @@ create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, t
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame QR Code # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Fungsi untuk kembali ke halaman login
-def from_qrcode_to_menu():
-    qr_frame.pack_forget()
-    login_frame.pack(fill="both", expand=True)
-
 # Fungsi untuk mengambil dan menampilkan QR code di Tkinter
 def fetch_and_show_qr_code():
     global driver, qr_label
@@ -907,9 +902,7 @@ def loaddataedit():
     for siswa in siswa_data:
         display_siswa(siswa)
 
-def from_update_to_database():
-    update_frame.pack_forget()
-    databases_frame.pack(fill="both", expand=True) 
+
 
 # Fungsi untuk mencari siswa
 def search_siswa():
@@ -1015,7 +1008,7 @@ title_label.pack(side="left", padx=10)
 # Tombol Exit di samping title_label
 exited_canvas = tk.Canvas(header_frame, width=100, height=40, bg="white", highlightthickness=0)
 exited_canvas.pack(side="left", padx=10)
-create_rounded_button(exited_canvas, x=5, y=5, width=90, height=30, radius=15, text="Back", command=from_update_to_database)
+create_rounded_button(exited_canvas, x=5, y=5, width=90, height=30, radius=15, text="Back", command=lambda: show_frame(databases_frame))
 
 # Search Bar
 search_frame = tk.Frame(update_frame, bg="white")
