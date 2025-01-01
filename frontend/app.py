@@ -959,6 +959,23 @@ def export_data():
         doc.save(folderuntuksave+"/export-"+current_date+"/"+replacements["<<nama_siswa>>"]+".docx")
     messagebox.showinfo("Success", "Berhasil Menyimpan Report")
 
+
+nisnsiswa = None
+
+def show_student_detail(event):
+    global nisnsiswa
+    selected_item = table_export_attendance.selection()[0]
+    values = table_export_attendance.item(selected_item)['values']
+    student_name = values[1]
+    
+    for student in data_report:
+        if student['nama'] == student_name:
+            getdetailabsenanak(student['nisn'])
+            nisnsiswa = student['nisn']
+            break
+    
+    show_frame(detail_frame)
+    
 # Frame utama backup
 report_frame = tk.Frame(root, bg="white")
 
@@ -1038,6 +1055,71 @@ except Exception as e:
         command=lambda: export_data(),
     )
     export_btn.pack(pady=20)
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Detail Siswa # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+datadetailabsen = []
+
+def getdetailabsenanak(nisn):
+    global datadetailabsen
+    payload = {
+        "login": tokenlogin,
+        "data":nisn
+    }
+    response = requests.get("http://localhost:3000/detailabsen", data=payload)
+    datadetailabsen = json.loads(response.text)
+    table_detail_absensi.delete(*table_detail_absensi.get_children())
+    name_label.config(text="Nama: "+datadetailabsen["data"][0]['nama'])
+    class_label.config(text="Kelas: "+datadetailabsen["data"][0]['kelas'])
+    for row in datadetailabsen["data"][1]:
+        table_detail_absensi.insert("", "end", values=(row['untuktanggal'],row['status'],row['keterangan']))
+
+detail_frame = tk.Frame(root, bg="#f8f9fa", highlightbackground="#ced4da", highlightthickness=1)
+
+title_label = tk.Label(detail_frame, text="Detail Kehadiran", font=("Helvetica", 18, "bold"), bg="white")
+title_label.pack(pady=10)
+
+subtitle_frame = tk.Frame(detail_frame, bg="white")
+subtitle_frame.pack(anchor="w", padx=20)
+
+name_label = tk.Label(subtitle_frame, text="Nama: Yoni", font=("Arial", 9), bg="white")
+name_label.grid(row=0, column=0, sticky="w")
+class_label = tk.Label(subtitle_frame, text="Kelas: 9", font=("Arial", 9), bg="white")
+class_label.grid(row=1, column=0, sticky="w")
+
+frame_table_detail = tk.Frame(detail_frame, padx=20, pady=10, bg="white")
+frame_table_detail.pack(pady=10)
+
+scrollbar = tk.Scrollbar(frame_table_detail)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+table_detail_absensi = ttk.Treeview(frame_table_detail, yscrollcommand=scrollbar.set, 
+                                   selectmode="none", columns=("date", "presence", "note"), show="headings")
+table_detail_absensi.pack()
+
+scrollbar.config(command=table_detail_absensi.yview)
+
+table_detail_absensi.column("date", anchor=tk.CENTER, width=150)
+table_detail_absensi.column("presence", anchor=tk.CENTER, width=100)
+table_detail_absensi.column("note", anchor=tk.CENTER, width=200)
+
+table_detail_absensi.heading("date", text="Date")
+table_detail_absensi.heading("presence", text="Presence")
+table_detail_absensi.heading("note", text="Note")
+
+style = ttk.Style()
+style.configure("Treeview.Heading", font=("Helvetica", 12, "bold"))
+style.configure("Treeview", rowheight=30, font=("Helvetica", 12))
+
+# Add back button to detail frame
+back_button = tk.Button(detail_frame, text="Back", command=lambda: show_frame(report_frame))
+back_button.pack(pady=10)
+
+getdetailabsenanak(nisnsiswa)
+
+
 # Menangani event ketika aplikasi ditutup
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
