@@ -132,7 +132,14 @@ for col in columns:
 
 # Export to PDF button
 icon = tk.PhotoImage(file="C:/Users/ferp/Desktop/Semester 7/KP/utama/assets/pdf_icon.png")
-export_btn = tk.Button(root, text="Export to PDF", image=icon, compound="left",font=("Helvetica", 12, "bold"), borderwidth=1,bg="#f3e5e5", fg="black", padx=10, pady=5, command=lambda:export_data())
+export_btn = tk.Button(
+    root, text="Export to PDF", 
+    image=icon, compound="left",
+    font=("Helvetica", 12, "bold"),
+    borderwidth=1,bg="#f3e5e5", 
+    fg="black", padx=10, 
+    pady=5, 
+    command=lambda:export_data())
 export_btn.pack(pady=20)
 getdatareport(1)
 # Run the Tkinter event loop

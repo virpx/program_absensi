@@ -15,6 +15,9 @@ import pandas
 import requests
 from tkinter import filedialog
 from openpyxl import load_workbook
+from docx import Document
+from datetime import datetime
+import os
 import json
 import base64
 import pandas as pd
@@ -23,13 +26,21 @@ import pandas as pd
 driver = None
 # pilih_aksi = tk.StringVar()
 btnsave = None
+
+def show_frame(frame):
+    # Sembunyikan semua frame
+    for child in root.winfo_children():
+        if isinstance(child, tk.Frame):
+            child.pack_forget()
+    # Tampilkan frame yang diminta
+    frame.pack(fill="both", expand=True)
+
 list_entry_add_siswa = []
-tokenlogin = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzU3MDAxNzIsImRhdGEiOiJhZG1pbmxvZ2luIiwiaWF0IjoxNzM1NjEzNzcyfQ.iTkBpsCsRi_lvOr-NpvPRPH67U9kj0_zMmBaSsqn4HI"
+tokenlogin = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzU4MTAzNDUsImRhdGEiOiJhZG1pbmxvZ2luIiwiaWF0IjoxNzM1NzIzOTQ1fQ.CtdTeCdYGEcBlWA3-sB4KMPPDYR2HF_2X91KqpS89Zo"
 # Fungsi untuk mengecek login setiap beberapa detik
 def check_login_status():
     if is_logged_in():
-        qr_frame.pack_forget()
-        absen_frame.pack(fill="both", expand=True)
+        show_frame(absen_frame)
     else:
         # Cek lagi dalam 5 detik
         root.after(5000, check_login_status)
@@ -157,12 +168,10 @@ def login():
         tokenlogin = datalogin["data"]
         email_entry.delete(0, tk.END)
         password_entry.delete(0, tk.END)
-        login_frame.pack_forget()
-        menu_frame.pack(fill="both", expand=True)
+        show_frame(menu_frame)
         # fetch_and_show_qr_code()
 
 login_frame = tk.Frame(root, bg="white")
-# login_frame.pack(fill="both", expand=True)
 
 # Sub-frame untuk memusatkan isi
 center_frame = tk.Frame(login_frame, bg="white")
@@ -251,10 +260,103 @@ create_rounded_button(
     command=login
 )
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Menu # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
+# Fungsi untuk menampilkan QR Code dan cek login       
+def from_menu_to_qrcode():
+    show_frame(qr_frame)
+    fetch_and_show_qr_code()
+    check_login_status()
+
+menu_frame = tk.Frame(root, bg="white")
+
+# Palet warna utama
+primary_color = "#6A1B9A"  # Ungu untuk aksen utama
+background_color = "white"
+
+# Section Tengah (terdiri dari kiri, tengah, dan kanan)
+tengah_frame = tk.Frame(menu_frame, bg="white")
+tengah_frame.place(relx=0.5, rely=0.4, anchor="center", relwidth=0.9, relheight=0.5)
+
+# Bagian Kiri di Tengah
+kiri_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
+kiri_frame.pack(fill="y", side="left", padx=10, pady=10)
+
+# Bagian Tengah di Tengah
+tengah_tengah_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
+tengah_tengah_frame.pack(fill="both", side="left", expand=True, padx=10, pady=10)
+
+# Bagian Kanan di Tengah
+kanan_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
+kanan_frame.pack(fill="y", side="right", padx=10, pady=10)
+
+# Section Bawah
+bawah_frame = tk.Frame(menu_frame, bg=background_color, height=80)
+bawah_frame.pack(fill="x", side="bottom")
+
+# Judul Menu
+title_label = tk.Label(menu_frame, text="Main Menu", bg=background_color, fg="Black", font=("Arial", 24, "bold"))
+title_label.pack(pady=10)
+
+# Load Gambar
+try:
+    image_path = "assets/database.png"  # Pastikan jalur sesuai dengan lokasi file gambar Anda
+    loaded_image = load_image(image_path, 250, 250)  # Mengatur ukuran gambar
+    img_label = tk.Label(kiri_frame, image=loaded_image, bg="white")
+    img_label.image = loaded_image  # Menyimpan referensi agar tidak dihapus oleh garbage collector
+    img_label.pack(pady=20)
+except FileNotFoundError:
+    error_label = tk.Label(kiri_frame, text="Gambar tidak ditemukan!", fg="red", bg="white")
+    error_label.pack(pady=20)
+
+# Tombol Database di halaman Menu
+database = tk.Canvas(kiri_frame, width=110, height=50, bg="white", highlightthickness=0)
+database.place(relx=0.50, rely=0.85, anchor="center") 
+create_rounded_button(database, x=5, y=5, width=100, height=40, radius=20, text="Database", command=lambda: show_frame(databases_frame))
+
+# Load Gambar
+try:
+    image_path = "assets/reicon.png"  # Pastikan jalur sesuai dengan lokasi file gambar Anda
+    loaded_image = load_image(image_path, 250, 250)  # Mengatur ukuran gambar
+    img_label = tk.Label(tengah_tengah_frame, image=loaded_image, bg="white")
+    img_label.image = loaded_image  # Menyimpan referensi agar tidak dihapus oleh garbage collector
+    img_label.pack(pady=20)
+except FileNotFoundError:
+    error_label = tk.Label(tengah_tengah_frame, text="Gambar tidak ditemukan!", fg="red", bg="white")
+    error_label.pack(pady=20)
+
+# Tombol Riport di halaman Menu
+riport = tk.Canvas(tengah_tengah_frame, width=110, height=50, bg="white", highlightthickness=0)
+riport.place(relx=0.50, rely=0.85, anchor="center") 
+create_rounded_button(riport, x=5, y=5, width=100, height=40, radius=20, text="Riport", command=lambda: show_frame(report_frame))
+
+# Load Gambar
+try:
+    image_path = "assets/abs.png"  # Pastikan jalur sesuai dengan lokasi file gambar Anda
+    loaded_image = load_image(image_path, 250, 250)  # Mengatur ukuran gambar
+    img_label = tk.Label(kanan_frame, image=loaded_image, bg="white")
+    img_label.image = loaded_image  # Menyimpan referensi agar tidak dihapus oleh garbage collector
+    img_label.pack(pady=20)
+except FileNotFoundError:
+    error_label = tk.Label(kanan_frame, text="Gambar tidak ditemukan!", fg="red", bg="white")
+    error_label.pack(pady=20)
+
+# Tombol Absensi Siswa di halaman Menu
+absensi = tk.Canvas(kanan_frame, width=110, height=50, bg="white", highlightthickness=0)
+absensi.place(relx=0.50, rely=0.85, anchor="center") 
+create_rounded_button(absensi, x=5, y=5, width=100, height=40, radius=20, text="Absensi Siswa", command=from_menu_to_qrcode)
+
+# Tombol Exit di pojok kanan bawah pada bawah_frame
+exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlightthickness=0)
+exited_canvas.place(relx=0.85, rely=0.25, anchor="center") 
+create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, text="Exit", command=lambda: show_frame(login_frame))
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame QR Code # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Fungsi untuk kembali ke halaman login
-def go_back():
+def from_qrcode_to_menu():
     qr_frame.pack_forget()
     login_frame.pack(fill="both", expand=True)
 
@@ -317,122 +419,13 @@ description_label = tk.Label(qr_frame, text="Scan the QR code above to proceed."
 description_label.pack(pady=10)
 
 # Tombol Back di halaman QR Code
-back_button = tk.Button(qr_frame, text="Back", command=go_back , bg="#4CAF50", fg="black", font=("Arial", 12, "bold"))
+back_button = tk.Button(qr_frame, text="Back", command=lambda: show_frame(menu_frame) , bg="#4CAF50", fg="black", font=("Arial", 12, "bold"))
 back_button.pack(pady=20)
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Menu # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-def todata():
-    menu_frame.pack_forget()
-    databases_frame.pack(fill="both", expand=True)
-
-# Fungsi untuk ke halaman report
-def to_report():
-    menu_frame.pack_forget()
-    report_frame.pack(fill="both", expand=True)
-
-# Fungsi untuk exit       
-def exite():
-    menu_frame.pack_forget()
-    login_frame.pack(fill="both", expand=True)
-
-# Fungsi untuk menampilkan QR Code dan cek login       
-def qrcode():
-    menu_frame.pack_forget()
-    qr_frame.pack(fill="both", expand=True)
-    fetch_and_show_qr_code()
-    check_login_status()
-
-menu_frame = tk.Frame(root, bg="white")
-# menu_frame.pack(fill="both", expand=True)
-
-# Palet warna utama
-primary_color = "#6A1B9A"  # Ungu untuk aksen utama
-background_color = "white"
-
-# Section Tengah (terdiri dari kiri, tengah, dan kanan)
-tengah_frame = tk.Frame(menu_frame, bg="white")
-tengah_frame.place(relx=0.5, rely=0.4, anchor="center", relwidth=0.9, relheight=0.5)
-
-# Bagian Kiri di Tengah
-kiri_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
-kiri_frame.pack(fill="y", side="left", padx=10, pady=10)
-
-# Bagian Tengah di Tengah
-tengah_tengah_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
-tengah_tengah_frame.pack(fill="both", side="left", expand=True, padx=10, pady=10)
-
-# Bagian Kanan di Tengah
-kanan_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
-kanan_frame.pack(fill="y", side="right", padx=10, pady=10)
-
-# Section Bawah
-bawah_frame = tk.Frame(menu_frame, bg=background_color, height=80)
-bawah_frame.pack(fill="x", side="bottom")
-
-# Judul Menu
-title_label = tk.Label(menu_frame, text="Main Menu", bg=background_color, fg="Black", font=("Arial", 24, "bold"))
-title_label.pack(pady=10)
-
-# Load Gambar
-try:
-    image_path = "assets/database.png"  # Pastikan jalur sesuai dengan lokasi file gambar Anda
-    loaded_image = load_image(image_path, 250, 250)  # Mengatur ukuran gambar
-    img_label = tk.Label(kiri_frame, image=loaded_image, bg="white")
-    img_label.image = loaded_image  # Menyimpan referensi agar tidak dihapus oleh garbage collector
-    img_label.pack(pady=20)
-except FileNotFoundError:
-    error_label = tk.Label(kiri_frame, text="Gambar tidak ditemukan!", fg="red", bg="white")
-    error_label.pack(pady=20)
-
-# Tombol Database di halaman Menu
-database = tk.Canvas(kiri_frame, width=110, height=50, bg="white", highlightthickness=0)
-database.place(relx=0.50, rely=0.85, anchor="center") 
-create_rounded_button(database, x=5, y=5, width=100, height=40, radius=20, text="Database", command=todata)
-
-# Load Gambar
-try:
-    image_path = "assets/reicon.png"  # Pastikan jalur sesuai dengan lokasi file gambar Anda
-    loaded_image = load_image(image_path, 250, 250)  # Mengatur ukuran gambar
-    img_label = tk.Label(tengah_tengah_frame, image=loaded_image, bg="white")
-    img_label.image = loaded_image  # Menyimpan referensi agar tidak dihapus oleh garbage collector
-    img_label.pack(pady=20)
-except FileNotFoundError:
-    error_label = tk.Label(tengah_tengah_frame, text="Gambar tidak ditemukan!", fg="red", bg="white")
-    error_label.pack(pady=20)
-
-# Tombol Riport di halaman Menu
-riport = tk.Canvas(tengah_tengah_frame, width=110, height=50, bg="white", highlightthickness=0)
-riport.place(relx=0.50, rely=0.85, anchor="center") 
-create_rounded_button(riport, x=5, y=5, width=100, height=40, radius=20, text="Riport", command=to_report)
-
-# Load Gambar
-try:
-    image_path = "assets/abs.png"  # Pastikan jalur sesuai dengan lokasi file gambar Anda
-    loaded_image = load_image(image_path, 250, 250)  # Mengatur ukuran gambar
-    img_label = tk.Label(kanan_frame, image=loaded_image, bg="white")
-    img_label.image = loaded_image  # Menyimpan referensi agar tidak dihapus oleh garbage collector
-    img_label.pack(pady=20)
-except FileNotFoundError:
-    error_label = tk.Label(kanan_frame, text="Gambar tidak ditemukan!", fg="red", bg="white")
-    error_label.pack(pady=20)
-
-# Tombol Absensi Siswa di halaman Menu
-absensi = tk.Canvas(kanan_frame, width=110, height=50, bg="white", highlightthickness=0)
-absensi.place(relx=0.50, rely=0.85, anchor="center") 
-create_rounded_button(absensi, x=5, y=5, width=100, height=40, radius=20, text="Absensi Siswa", command=qrcode)
-
-# Tombol Exit di pojok kanan bawah pada bawah_frame
-exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlightthickness=0)
-exited_canvas.place(relx=0.85, rely=0.25, anchor="center") 
-create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, text="Exit", command=exite)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Absensi # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Fungsi untuk kembali ke halaman login
-def go_login():
-    absen_frame.pack_forget()
-    login_frame.pack(fill="both", expand=True)    
+
 def on_key_release(e):
     global tokenlogin
     if len(nik_entry.get()) == 10:
@@ -446,7 +439,6 @@ def on_key_release(e):
             messagebox.showerror("Gagal Absen", datalogin["data"])
         nik_entry.delete(0,tk.END)
 absen_frame = tk.Frame(root,bg="white")
-# absen_frame.pack(fill="both", expand=True)
 
 # Membuat dua section di dalam frame absensi
 
@@ -506,39 +498,42 @@ back_canvas = tk.Canvas(section_kanan, width=100, height=50, bg="white", highlig
 back_canvas.place(relx=0.5, rely=0.6, anchor="center")  # Posisi di tengah secara horizontal, sedikit di bawah tengah secara vertikal
 
 # Membuat tombol "Back" melingkar
-create_rounded_button(back_canvas, x=5, y=5, width=90, height=40, radius=20, text="Back", command=go_login)
+create_rounded_button(back_canvas, x=5, y=5, width=90, height=40, radius=20, text="Back", command=lambda: show_frame(menu_frame))
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Database # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-databases_frame = tk.Frame(root)
 
 # Palet warna utama
 primary_color = "#6A1B9A"  # Ungu untuk aksen utama
 background_color = "white"
 
-# Section Tengah (terdiri dari kiri, tengah, dan kanan)
-tengah_frame = tk.Frame(databases_frame, bg="white")
-tengah_frame.place(relx=0.5, rely=0.4, anchor="center", relwidth=0.9, relheight=0.5)
-
-# Bagian Kiri di Tengah
-kiri_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
-kiri_frame.pack(fill="y", side="left", padx=10, pady=10)
-
-# Bagian Tengah di Tengah
-tengah_tengah_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
-tengah_tengah_frame.pack(fill="both", side="left", expand=True, padx=10, pady=10)
-
-# Bagian Kanan di Tengah
-kanan_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
-kanan_frame.pack(fill="y", side="right", padx=10, pady=10)
-
-# Section Bawah
-bawah_frame = tk.Frame(databases_frame, bg=background_color, height=80)
-bawah_frame.pack(fill="x", side="bottom")
+# Frame utama database
+databases_frame = tk.Frame(root, bg="white")
 
 # Judul Menu
 title_label = tk.Label(databases_frame, text="Menu Database", bg=background_color, fg="Black", font=("Arial", 24, "bold"))
-title_label.pack(pady=10)
+title_label.pack(pady=20)
+
+# Section Tengah (terdiri dari kiri, tengah, dan kanan)
+tengah_frame = tk.Frame(databases_frame, bg=background_color)
+tengah_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+# Bagian Kiri di Tengah
+kiri_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
+kiri_frame.pack(side="left", fill="y", padx=20, pady=20)
+
+# Bagian Tengah di Tengah
+tengah_tengah_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
+tengah_tengah_frame.pack(side="left", fill="both", expand=True, padx=20, pady=20)
+
+# Bagian Kanan di Tengah
+kanan_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
+kanan_frame.pack(side="right", fill="y", padx=20, pady=20)
+
+# Section Bawah
+bawah_frame = tk.Frame(databases_frame, bg=background_color, height=80)
+bawah_frame.pack(side="bottom", fill="x", padx=20, pady=10)
+
 
 # Load Gambar
 try:
@@ -553,8 +548,8 @@ except FileNotFoundError:
 
 # Tombol Database di halaman Menu
 database = tk.Canvas(kiri_frame, width=110, height=50, bg="white", highlightthickness=0)
-database.place(relx=0.50, rely=0.85, anchor="center") 
-create_rounded_button(database, x=5, y=5, width=100, height=40, radius=20, text="Input Data", command="")
+database.place(relx=0.50, rely=0.65, anchor="center") 
+create_rounded_button(database, x=5, y=5, width=100, height=40, radius=20, text="Input Data", command=lambda: show_frame(input_frame))
 
 # Load Gambar
 try:
@@ -569,8 +564,8 @@ except FileNotFoundError:
 
 # Tombol Riport di halaman Menu
 riport = tk.Canvas(tengah_tengah_frame, width=150, height=50, bg="white", highlightthickness=0)
-riport.place(relx=0.50, rely=0.85, anchor="center") 
-create_rounded_button(riport, x=5, y=5, width=140, height=40, radius=20, text="Backup Database", command="")
+riport.place(relx=0.50, rely=0.65, anchor="center") 
+create_rounded_button(riport, x=5, y=5, width=140, height=40, radius=20, text="Backup Database", command=lambda: show_frame(backup_frame))
 
 # Load Gambar
 try:
@@ -585,15 +580,19 @@ except FileNotFoundError:
 
 # Tombol Absensi Siswa di halaman Menu
 absensi = tk.Canvas(kanan_frame, width=150, height=50, bg="white", highlightthickness=0)
-absensi.place(relx=0.50, rely=0.85, anchor="center") 
-create_rounded_button(absensi, x=5, y=5, width=140, height=40, radius=20, text="Update Presensi", command="")
+absensi.place(relx=0.50, rely=0.65, anchor="center") 
+create_rounded_button(absensi, x=5, y=5, width=140, height=40, radius=20, text="Update Presensi", command=lambda: show_frame(update_frame))
 
 # Tombol Exit di pojok kanan bawah pada bawah_frame
 exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlightthickness=0)
 exited_canvas.place(relx=0.85, rely=0.25, anchor="center") 
-create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, text="Exit", command="")
+create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, text="Exit", command=lambda: show_frame(menu_frame))
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame input data list siswa # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+def from_inputdata_to_database():
+    input_frame.pack_forget()
+    databases_frame.pack(fill="both", expand=True) 
 
 base64save = None;
 def loadexcel():
@@ -680,19 +679,32 @@ def savedata():
 
 # Frame utama
 input_frame = tk.Frame(root, bg="white")
-input_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
 # Label Judul
 title_label = tk.Label(input_frame, text="Input Data dari Excel", font=("Arial", 16, "bold"), bg="white", fg="#800080")
 title_label.pack(pady=10)
 
-# Tombol untuk memuat file Excel
-load_button = ttk.Button(input_frame, text="Load Excel File", command=loadexcel)
-load_button.pack(pady=10)
+# Frame untuk tombol Exit di pojok kanan atas
+exit_frame = tk.Frame(input_frame, bg="white")
+exit_frame.pack(fill="x", padx=10)
+exit_frame.pack_propagate(False)
+exit_frame.config(height=50)
 
-# Tombol untuk menyimpan data
-save_button = ttk.Button(input_frame, text="Save Data", command=savedata)
-save_button.pack(pady=10)
+# Tombol Exit di pojok kanan atas
+exited_canvas = tk.Canvas(exit_frame, width=100, height=40, bg="white", highlightthickness=0)
+exited_canvas.pack(side="right", padx=10)
+create_rounded_button(exited_canvas, x=5, y=5, width=90, height=30, radius=15, text="Back", command=lambda: show_frame(databases_frame))
+
+# Frame untuk tombol Load dan Save
+button_frame = tk.Frame(input_frame, bg="white")
+button_frame.pack(pady=10)
+
+# Tombol untuk memuat file Excel dan Save sejajar
+load_button = ttk.Button(button_frame, text="Load Excel File", command=loadexcel)
+load_button.pack(side="left", padx=5)
+
+save_button = ttk.Button(button_frame, text="Save Data", command=savedata)
+save_button.pack(side="left", padx=5)
 
 # Tabel untuk menampilkan data
 tree_frame = tk.Frame(input_frame, bg="white")
@@ -705,7 +717,179 @@ tree.pack(side="left", fill="both", expand=True)
 scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
 scrollbar.pack(side="right", fill="y")
 tree.configure(yscrollcommand=scrollbar.set)
+
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame backup database # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+data_report = []
+replacements = {
+    "<<tanggal_expxort>>": "",
+    "<<nama_siswa>>": "",
+    "<<kelas_siswa>>": "",
+    "<<jumlah_masuk>>": "",
+    "<<jumlah_alpha>>": "",
+    "<<jumlah_izin>>": "",
+    "<<jenis_export>>": "",
+}
+
+def replace_text_in_paragraph(paragraph, replacements):
+    for key, value in replacements.items():
+        if key in paragraph.text:
+            paragraph.text = paragraph.text.replace(key, str(value))
+def add_table(document, data):
+    table = document.add_table(rows=1, cols=len(data[0]))  # Header dari data
+    # Tambah header
+    hdr_cells = table.rows[0].cells
+    for idx, header in enumerate(data[0]):
+        hdr_cells[idx].text = header
+    
+    # Tambah data baris
+    for row in data[1:]:
+        row_cells = table.add_row().cells
+        for idx, item in enumerate(row):
+            row_cells[idx].text = str(item)
+def getdatareport(parameter):
+    if parameter == 1:
+        replacements["<<jenis_export>>"] = "Mingguan"
+    elif parameter == 2:
+        replacements["<<jenis_export>>"] = "Bulanan"
+    else:
+        replacements["<<jenis_export>>"] = "Semester"
+    global data_report
+    payload = {
+        "login": tokenlogin,
+        "data":parameter
+    }
+    response = requests.get("http://localhost:3000/laporan", data=payload)
+    data_report = json.loads(response.text)
+    table_export_attendance.delete(*table_export_attendance.get_children())
+    cntr = 1;
+    for row in data_report:
+        table_export_attendance.insert("", "end", values=(cntr,row['nama'],row['hadir'],row['izin'],row['alpha']))
+        cntr += 1
+def export_data():
+    tanggal_sekarang = datetime.now()
+    tanggal_terformat = tanggal_sekarang.strftime("%d %B %Y")
+    bulan_indonesia = {
+        "January": "Januari", "February": "Februari", "March": "Maret",
+        "April": "April", "May": "Mei", "June": "Juni",
+        "July": "Juli", "August": "Agustus", "September": "September",
+        "October": "Oktober", "November": "November", "December": "Desember"
+    }
+    for english, indonesia in bulan_indonesia.items():
+        tanggal_terformat = tanggal_terformat.replace(english, indonesia)
+    replacements["<<tanggal_expxort>>"] = tanggal_terformat
+    for a in data_report:
+        doc = Document("template_report_siswa.docx")
+        replacements["<<nama_siswa>>"] = a["nama"]
+        replacements["<<kelas_siswa>>"] = a["kelas"]
+        replacements["<<jumlah_alpha>>"] = a["alpha"]
+        replacements["<<jumlah_izin>>"] = a["izin"]
+        replacements["<<jumlah_masuk>>"] = a["hadir"]
+        for paragraph in doc.paragraphs:
+            replace_text_in_paragraph(paragraph, replacements)
+        table_data = [
+            ["Tanggal", "Status","Keterangan"],  # Header
+        ]
+        for b in a["data"]:
+            if b["status"] == 1:
+                statustulis = "Masuk"
+                keterangantulis = "-"
+            elif b["status"] == 2:
+                statustulis = "Izin"
+                keterangantulis = b["keterangan"]
+            elif b["status"] == 0:
+                statustulis = "Alpha"
+                keterangantulis = "-"
+            table_data.append([b["untuktanggal"],statustulis,keterangantulis])
+        add_table(doc, table_data)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        os.makedirs("hasil_export/"+current_date, exist_ok=True)
+        doc.save("hasil_export/"+current_date+"/"+replacements["<<nama_siswa>>"]+".docx")
+
+
+# Frame utama backup
+backup_frame = tk.Frame(root, bg="white")
+
+# Frame untuk header dan back button
+header_frame = tk.Frame(backup_frame, bg="white")
+header_frame.pack(fill="x", padx=20, pady=(20,10))
+
+# Back button
+back_canvas = tk.Canvas(header_frame, width=100, height=40, bg="white", highlightthickness=0)
+back_canvas.pack(side="left")
+create_rounded_button(back_canvas, 0, 0, 100, 40, 20, "Back", command=lambda: show_frame(databases_frame))
+
+# Header label
+header_label = tk.Label(header_frame, text="Export attendance", font=("Helvetica", 18, "bold"), bg="white", fg="#333")
+header_label.pack(side="left", padx=20)
+
+# Time interval label
+interval_label = tk.Label(backup_frame, text="Jangka Waktu", font=("Helvetica", 12), bg="white")
+interval_label.pack(anchor="w", padx=20)
+
+# Frame for time interval buttons
+interval_frame = tk.Frame(backup_frame, bg="white")
+interval_frame.pack(pady=10, padx=20, anchor="w")
+
+btn = tk.Button(interval_frame, text="Mingguan (Default)", font=("Helvetica", 10), bg="#fff", fg="#333", relief="solid", borderwidth=1, padx=10, pady=5,command=lambda:getdatareport(1))
+btn.pack(side="left", padx=5)
+btn = tk.Button(interval_frame, text="Bulanan", font=("Helvetica", 10), bg="#fff", fg="#333", relief="solid", borderwidth=1, padx=10, pady=5,command=lambda:getdatareport(2))
+btn.pack(side="left", padx=5)
+btn = tk.Button(interval_frame, text="Semester", font=("Helvetica", 10), bg="#fff", fg="#333", relief="solid", borderwidth=1, padx=10, pady=5,command=lambda:getdatareport(3))
+btn.pack(side="left", padx=5)
+
+# Table (Treeview) for attendance data
+table_frame = tk.Frame(backup_frame, bg="#fef7f5")
+table_frame.pack(pady=20, padx=20, fill="both", expand=True)
+
+# Treeview widget
+columns = ("No", "Nama", "Hadir", "Ijin", "Alpha")
+table_export_attendance = ttk.Treeview(table_frame, columns=columns, show="headings", height=5)
+table_export_attendance.pack(fill="both", expand=True)
+
+# Define column headings and widths
+for col in columns:
+    table_export_attendance.heading(col, text=col)
+    table_export_attendance.column(col, anchor="center", width=100)
+
+# Insert sample data
+
+
+# Tombol Export to PDF
+try:
+    icon = tk.PhotoImage(file="assets/pdf_icon.png")  # Pastikan file ada
+    export_btn = tk.Button(
+        backup_frame,
+        text="Export to PDF",
+        image=icon,
+        compound="left",
+        font=("Helvetica", 12, "bold"),
+        borderwidth=1,
+        bg="#e0aaff",
+        fg="black",
+        padx=10,
+        pady=5,
+        command=lambda: export_data(),
+    )
+    export_btn.pack(pady=20)
+    export_btn.image = icon  # Simpan referensi agar tidak garbage-collected
+except Exception as e:
+    export_btn = tk.Button(
+        backup_frame,
+        text="Export to PDF",
+        font=("Helvetica", 12, "bold"),
+        borderwidth=1,
+        bg="#e0aaff",
+        fg="black",
+        padx=10,
+        pady=5,
+        command=lambda: export_data(),
+    )
+    export_btn.pack(pady=20)
+
+getdatareport(1)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame update presensi kehadiran siswa # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -722,6 +906,11 @@ def loaddataedit():
     siswa_data = datalogin
     for siswa in siswa_data:
         display_siswa(siswa)
+
+def from_update_to_database():
+    update_frame.pack_forget()
+    databases_frame.pack(fill="both", expand=True) 
+
 # Fungsi untuk mencari siswa
 def search_siswa():
     search_query = search_entry.get().lower()
@@ -803,6 +992,8 @@ def display_siswa(siswa):
 
     save_button = ttk.Button(siswa_frame, text="Save", command=save_attendance, style="Purple.TButton")
     save_button.pack(side="left", padx=10)
+
+
 # Styling tombol dengan ttk
 style = ttk.Style()
 style.configure("Purple.TButton", background="#800080", foreground="white", font=("Arial", 10))
@@ -812,11 +1003,19 @@ style.map("Purple.TButton",
 
 # Frame Utama
 update_frame = tk.Frame(root, bg="white")
-# update_frame.pack(fill="both", expand=True)
+
+# Frame untuk header yang berisi judul dan tombol exit
+header_frame = tk.Frame(update_frame, bg="white")
+header_frame.pack(fill="x", pady=10)
 
 # Label Judul
-title_label = tk.Label(update_frame, text="Update Kehadiran Siswa", font=("Arial", 16, "bold"), bg="white", fg="#800080")
-title_label.pack(pady=10)
+title_label = tk.Label(header_frame, text="Update Kehadiran Siswa", font=("Arial", 16, "bold"), bg="white", fg="#800080")
+title_label.pack(side="left", padx=10)
+
+# Tombol Exit di samping title_label
+exited_canvas = tk.Canvas(header_frame, width=100, height=40, bg="white", highlightthickness=0)
+exited_canvas.pack(side="left", padx=10)
+create_rounded_button(exited_canvas, x=5, y=5, width=90, height=30, radius=15, text="Back", command=from_update_to_database)
 
 # Search Bar
 search_frame = tk.Frame(update_frame, bg="white")
@@ -836,10 +1035,15 @@ result_frame = tk.Frame(update_frame, bg="white")
 result_frame.pack(fill="x", pady=10)
 loaddataedit()
 
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Riport # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+def from_riport_to_menu():
+    report_frame.pack_forget()
+    menu_frame.pack(fill="both", expand=True) 
+
+
 report_frame = tk.Frame(root, bg="#f8f9fa", highlightbackground="#ced4da", highlightthickness=1)
-# report_frame.pack(fill="both", expand=True)
 
 # Header label
 header_label = tk.Label(report_frame, text="Export Attendance", font=("Helvetica", 18, "bold"), bg="#f8f9fa", fg="#495057")
@@ -940,10 +1144,15 @@ except Exception as e:
     export_btn.pack(pady=20)
 
 
-
+# Tombol Exit di pojok kanan bawah pada bawah_frame
+exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlightthickness=0)
+exited_canvas.place(relx=0.85, rely=0.25, anchor="center") 
+create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, text="Exit", command=lambda: show_frame(menu_frame))
 
 # Menangani event ketika aplikasi ditutup
 root.protocol("WM_DELETE_WINDOW", on_closing)
+
+show_frame(backup_frame) 
 
 # Jalankan aplikasi
 root.mainloop()
