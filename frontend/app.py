@@ -717,174 +717,7 @@ tree.configure(yscrollcommand=scrollbar.set)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame backup database # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-data_report = []
-replacements = {
-    "<<tanggal_expxort>>": "",
-    "<<nama_siswa>>": "",
-    "<<kelas_siswa>>": "",
-    "<<jumlah_masuk>>": "",
-    "<<jumlah_alpha>>": "",
-    "<<jumlah_izin>>": "",
-    "<<jenis_export>>": "",
-}
 
-def replace_text_in_paragraph(paragraph, replacements):
-    for key, value in replacements.items():
-        if key in paragraph.text:
-            paragraph.text = paragraph.text.replace(key, str(value))
-def add_table(document, data):
-    table = document.add_table(rows=1, cols=len(data[0]))  # Header dari data
-    # Tambah header
-    hdr_cells = table.rows[0].cells
-    for idx, header in enumerate(data[0]):
-        hdr_cells[idx].text = header
-    
-    # Tambah data baris
-    for row in data[1:]:
-        row_cells = table.add_row().cells
-        for idx, item in enumerate(row):
-            row_cells[idx].text = str(item)
-def getdatareport(parameter):
-    if parameter == 1:
-        replacements["<<jenis_export>>"] = "Mingguan"
-    elif parameter == 2:
-        replacements["<<jenis_export>>"] = "Bulanan"
-    else:
-        replacements["<<jenis_export>>"] = "Semester"
-    global data_report
-    payload = {
-        "login": tokenlogin,
-        "data":parameter
-    }
-    response = requests.get("http://localhost:3000/laporan", data=payload)
-    data_report = json.loads(response.text)
-    table_export_attendance.delete(*table_export_attendance.get_children())
-    cntr = 1;
-    for row in data_report:
-        table_export_attendance.insert("", "end", values=(cntr,row['nama'],row['hadir'],row['izin'],row['alpha']))
-        cntr += 1
-def export_data():
-    tanggal_sekarang = datetime.now()
-    tanggal_terformat = tanggal_sekarang.strftime("%d %B %Y")
-    bulan_indonesia = {
-        "January": "Januari", "February": "Februari", "March": "Maret",
-        "April": "April", "May": "Mei", "June": "Juni",
-        "July": "Juli", "August": "Agustus", "September": "September",
-        "October": "Oktober", "November": "November", "December": "Desember"
-    }
-    for english, indonesia in bulan_indonesia.items():
-        tanggal_terformat = tanggal_terformat.replace(english, indonesia)
-    replacements["<<tanggal_expxort>>"] = tanggal_terformat
-    for a in data_report:
-        doc = Document("template_report_siswa.docx")
-        replacements["<<nama_siswa>>"] = a["nama"]
-        replacements["<<kelas_siswa>>"] = a["kelas"]
-        replacements["<<jumlah_alpha>>"] = a["alpha"]
-        replacements["<<jumlah_izin>>"] = a["izin"]
-        replacements["<<jumlah_masuk>>"] = a["hadir"]
-        for paragraph in doc.paragraphs:
-            replace_text_in_paragraph(paragraph, replacements)
-        table_data = [
-            ["Tanggal", "Status","Keterangan"],  # Header
-        ]
-        for b in a["data"]:
-            if b["status"] == 1:
-                statustulis = "Masuk"
-                keterangantulis = "-"
-            elif b["status"] == 2:
-                statustulis = "Izin"
-                keterangantulis = b["keterangan"]
-            elif b["status"] == 0:
-                statustulis = "Alpha"
-                keterangantulis = "-"
-            table_data.append([b["untuktanggal"],statustulis,keterangantulis])
-        add_table(doc, table_data)
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        os.makedirs("hasil_export/"+current_date, exist_ok=True)
-        doc.save("hasil_export/"+current_date+"/"+replacements["<<nama_siswa>>"]+".docx")
-
-
-# Frame utama backup
-backup_frame = tk.Frame(root, bg="white")
-
-# Frame untuk header dan back button
-header_frame = tk.Frame(backup_frame, bg="white")
-header_frame.pack(fill="x", padx=20, pady=(20,10))
-
-# Back button
-back_canvas = tk.Canvas(header_frame, width=100, height=40, bg="white", highlightthickness=0)
-back_canvas.pack(side="left")
-create_rounded_button(back_canvas, 0, 0, 100, 40, 20, "Back", command=lambda: show_frame(databases_frame))
-
-# Header label
-header_label = tk.Label(header_frame, text="Export attendance", font=("Helvetica", 18, "bold"), bg="white", fg="#333")
-header_label.pack(side="left", padx=20)
-
-# Time interval label
-interval_label = tk.Label(backup_frame, text="Jangka Waktu", font=("Helvetica", 12), bg="white")
-interval_label.pack(anchor="w", padx=20)
-
-# Frame for time interval buttons
-interval_frame = tk.Frame(backup_frame, bg="white")
-interval_frame.pack(pady=10, padx=20, anchor="w")
-
-btn = tk.Button(interval_frame, text="Mingguan (Default)", font=("Helvetica", 10), bg="#fff", fg="#333", relief="solid", borderwidth=1, padx=10, pady=5,command=lambda:getdatareport(1))
-btn.pack(side="left", padx=5)
-btn = tk.Button(interval_frame, text="Bulanan", font=("Helvetica", 10), bg="#fff", fg="#333", relief="solid", borderwidth=1, padx=10, pady=5,command=lambda:getdatareport(2))
-btn.pack(side="left", padx=5)
-btn = tk.Button(interval_frame, text="Semester", font=("Helvetica", 10), bg="#fff", fg="#333", relief="solid", borderwidth=1, padx=10, pady=5,command=lambda:getdatareport(3))
-btn.pack(side="left", padx=5)
-
-# Table (Treeview) for attendance data
-table_frame = tk.Frame(backup_frame, bg="#fef7f5")
-table_frame.pack(pady=20, padx=20, fill="both", expand=True)
-
-# Treeview widget
-columns = ("No", "Nama", "Hadir", "Ijin", "Alpha")
-table_export_attendance = ttk.Treeview(table_frame, columns=columns, show="headings", height=5)
-table_export_attendance.pack(fill="both", expand=True)
-
-# Define column headings and widths
-for col in columns:
-    table_export_attendance.heading(col, text=col)
-    table_export_attendance.column(col, anchor="center", width=100)
-
-# Insert sample data
-
-
-# Tombol Export to PDF
-try:
-    icon = tk.PhotoImage(file="assets/pdf_icon.png")  # Pastikan file ada
-    export_btn = tk.Button(
-        backup_frame,
-        text="Export to PDF",
-        image=icon,
-        compound="left",
-        font=("Helvetica", 12, "bold"),
-        borderwidth=1,
-        bg="#e0aaff",
-        fg="black",
-        padx=10,
-        pady=5,
-        command=lambda: export_data(),
-    )
-    export_btn.pack(pady=20)
-    export_btn.image = icon  # Simpan referensi agar tidak garbage-collected
-except Exception as e:
-    export_btn = tk.Button(
-        backup_frame,
-        text="Export to PDF",
-        font=("Helvetica", 12, "bold"),
-        borderwidth=1,
-        bg="#e0aaff",
-        fg="black",
-        padx=10,
-        pady=5,
-        command=lambda: export_data(),
-    )
-    export_btn.pack(pady=20)
-
-getdatareport(1)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame update presensi kehadiran siswa # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -1031,80 +864,140 @@ loaddataedit()
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Riport # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def from_riport_to_menu():
-    report_frame.pack_forget()
-    menu_frame.pack(fill="both", expand=True) 
+data_report = []
+replacements = {
+    "<<tanggal_expxort>>": "",
+    "<<nama_siswa>>": "",
+    "<<kelas_siswa>>": "",
+    "<<jumlah_masuk>>": "",
+    "<<jumlah_alpha>>": "",
+    "<<jumlah_izin>>": "",
+    "<<jenis_export>>": "",
+}
+
+def replace_text_in_paragraph(paragraph, replacements):
+    for key, value in replacements.items():
+        if key in paragraph.text:
+            paragraph.text = paragraph.text.replace(key, str(value))
+def add_table(document, data):
+    table = document.add_table(rows=1, cols=len(data[0]))  # Header dari data
+    # Tambah header
+    hdr_cells = table.rows[0].cells
+    for idx, header in enumerate(data[0]):
+        hdr_cells[idx].text = header
+    
+    # Tambah data baris
+    for row in data[1:]:
+        row_cells = table.add_row().cells
+        for idx, item in enumerate(row):
+            row_cells[idx].text = str(item)
+def getdatareport(parameter):
+    if parameter == 1:
+        replacements["<<jenis_export>>"] = "Mingguan"
+    elif parameter == 2:
+        replacements["<<jenis_export>>"] = "Bulanan"
+    else:
+        replacements["<<jenis_export>>"] = "Semester"
+    global data_report
+    payload = {
+        "login": tokenlogin,
+        "data":parameter
+    }
+    response = requests.get("http://localhost:3000/laporan", data=payload)
+    data_report = json.loads(response.text)
+    table_export_attendance.delete(*table_export_attendance.get_children())
+    cntr = 1;
+    for row in data_report:
+        table_export_attendance.insert("", "end", values=(cntr,row['nama'],row['hadir'],row['izin'],row['alpha']))
+        cntr += 1
+def export_data():
+    tanggal_sekarang = datetime.now()
+    tanggal_terformat = tanggal_sekarang.strftime("%d %B %Y")
+    bulan_indonesia = {
+        "January": "Januari", "February": "Februari", "March": "Maret",
+        "April": "April", "May": "Mei", "June": "Juni",
+        "July": "Juli", "August": "Agustus", "September": "September",
+        "October": "Oktober", "November": "November", "December": "Desember"
+    }
+    for english, indonesia in bulan_indonesia.items():
+        tanggal_terformat = tanggal_terformat.replace(english, indonesia)
+    replacements["<<tanggal_expxort>>"] = tanggal_terformat
+    for a in data_report:
+        doc = Document("template_report_siswa.docx")
+        replacements["<<nama_siswa>>"] = a["nama"]
+        replacements["<<kelas_siswa>>"] = a["kelas"]
+        replacements["<<jumlah_alpha>>"] = a["alpha"]
+        replacements["<<jumlah_izin>>"] = a["izin"]
+        replacements["<<jumlah_masuk>>"] = a["hadir"]
+        for paragraph in doc.paragraphs:
+            replace_text_in_paragraph(paragraph, replacements)
+        table_data = [
+            ["Tanggal", "Status","Keterangan"],  # Header
+        ]
+        for b in a["data"]:
+            if b["status"] == 1:
+                statustulis = "Masuk"
+                keterangantulis = "-"
+            elif b["status"] == 2:
+                statustulis = "Izin"
+                keterangantulis = b["keterangan"]
+            elif b["status"] == 0:
+                statustulis = "Alpha"
+                keterangantulis = "-"
+            table_data.append([b["untuktanggal"],statustulis,keterangantulis])
+        add_table(doc, table_data)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        os.makedirs("hasil_export/"+current_date, exist_ok=True)
+        doc.save("hasil_export/"+current_date+"/"+replacements["<<nama_siswa>>"]+".docx")
 
 
-report_frame = tk.Frame(root, bg="#f8f9fa", highlightbackground="#ced4da", highlightthickness=1)
+# Frame utama backup
+report_frame = tk.Frame(root, bg="white")
+
+# Frame untuk header dan back button
+header_frame = tk.Frame(report_frame, bg="white")
+header_frame.pack(fill="x", padx=20, pady=(20,10))
+
+# Back button
+back_canvas = tk.Canvas(header_frame, width=100, height=40, bg="white", highlightthickness=0)
+back_canvas.pack(side="left")
+create_rounded_button(back_canvas, 0, 0, 100, 40, 20, "Back", command=lambda: show_frame(databases_frame))
 
 # Header label
-header_label = tk.Label(report_frame, text="Export Attendance", font=("Helvetica", 18, "bold"), bg="#f8f9fa", fg="#495057")
-header_label.pack(pady=(20, 10))
+header_label = tk.Label(header_frame, text="Export attendance", font=("Helvetica", 18, "bold"), bg="white", fg="#333")
+header_label.pack(side="left", padx=20)
 
 # Time interval label
-interval_label = tk.Label(report_frame, text="Jangka Waktu", font=("Helvetica", 12, "bold"), bg="#f8f9fa", fg="#6c757d")
+interval_label = tk.Label(report_frame, text="Jangka Waktu", font=("Helvetica", 12), bg="white")
 interval_label.pack(anchor="w", padx=20)
 
-# Frame untuk tombol interval waktu
-interval_frame = tk.Frame(report_frame, bg="#f8f9fa")
+# Frame for time interval buttons
+interval_frame = tk.Frame(report_frame, bg="white")
 interval_frame.pack(pady=10, padx=20, anchor="w")
 
-# Tombol interval waktu
-btn_mingguan = tk.Button(interval_frame, text="Mingguan", font=("Helvetica", 10), bg="#e9ecef", fg="#333", relief="flat", borderwidth=1, padx=10, pady=5)
-btn_mingguan.pack(side="left", padx=5)
+btn = tk.Button(interval_frame, text="Mingguan (Default)", font=("Helvetica", 10), bg="#fff", fg="#333", relief="solid", borderwidth=1, padx=10, pady=5,command=lambda:getdatareport(1))
+btn.pack(side="left", padx=5)
+btn = tk.Button(interval_frame, text="Bulanan", font=("Helvetica", 10), bg="#fff", fg="#333", relief="solid", borderwidth=1, padx=10, pady=5,command=lambda:getdatareport(2))
+btn.pack(side="left", padx=5)
+btn = tk.Button(interval_frame, text="Semester", font=("Helvetica", 10), bg="#fff", fg="#333", relief="solid", borderwidth=1, padx=10, pady=5,command=lambda:getdatareport(3))
+btn.pack(side="left", padx=5)
 
-btn_bulanan = tk.Button(interval_frame, text="Bulanan", font=("Helvetica", 10), bg="#e9ecef", fg="#333", relief="flat", borderwidth=1, padx=10, pady=5)
-btn_bulanan.pack(side="left", padx=5)
-
-btn_semester = tk.Button(interval_frame, text="Semester", font=("Helvetica", 10), bg="#e9ecef", fg="#333", relief="flat", borderwidth=1, padx=10, pady=5)
-btn_semester.pack(side="left", padx=5)
-
-# Frame untuk tabel data kehadiran
-table_frame = tk.Frame(report_frame, bg="#f8f9fa")
+# Table (Treeview) for attendance data
+table_frame = tk.Frame(report_frame, bg="#fef7f5")
 table_frame.pack(pady=20, padx=20, fill="both", expand=True)
 
-# Gaya khusus untuk tabel
-style = ttk.Style()
-style.theme_use("clam")
-style.configure("Treeview",
-                background="#ffffff",
-                foreground="#000000",
-                rowheight=25,
-                fieldbackground="#ffffff")
-style.map("Treeview",
-          background=[("selected", "#6c757d")],
-          foreground=[("selected", "white")])
-style.configure("Treeview.Heading",
-                font=("Helvetica", 11, "bold"),
-                background="#495057",
-                foreground="white",
-                borderwidth=1)
-
-# Widget Treeview untuk tabel
+# Treeview widget
 columns = ("No", "Nama", "Hadir", "Ijin", "Alpha")
-table = ttk.Treeview(table_frame, columns=columns, show="headings", height=8)
-table.pack(fill="both", expand=True)
+table_export_attendance = ttk.Treeview(table_frame, columns=columns, show="headings", height=5)
+table_export_attendance.pack(fill="both", expand=True)
 
-# Tentukan kolom dan lebar tabel
+# Define column headings and widths
 for col in columns:
-    table.heading(col, text=col)
-    table.column(col, anchor="center", width=100)
+    table_export_attendance.heading(col, text=col)
+    table_export_attendance.column(col, anchor="center", width=100)
 
-# Warna alternatif untuk baris
-table.tag_configure("evenrow", background="#f8f9fa")
-table.tag_configure("oddrow", background="#ffffff")
+# Insert sample data
 
-# Masukkan data sampel ke dalam tabel
-sample_data = [
-    (1, "Student 1", "01/01/2023", "01/07/2023", "Hadir"),
-    (2, "Student 2", "12/25/2022", "01/07/2023", "Ijin"),
-    (3, "Student 3", "12/09/2022", "01/07/2023", "Alpha"),
-]
-
-for index, row in enumerate(sample_data):
-    tag = "evenrow" if index % 2 == 0 else "oddrow"
-    table.insert("", "end", values=row, tags=(tag,))
 
 # Tombol Export to PDF
 try:
@@ -1119,7 +1012,8 @@ try:
         bg="#e0aaff",
         fg="black",
         padx=10,
-        pady=5
+        pady=5,
+        command=lambda: export_data(),
     )
     export_btn.pack(pady=20)
     export_btn.image = icon  # Simpan referensi agar tidak garbage-collected
@@ -1132,16 +1026,12 @@ except Exception as e:
         bg="#e0aaff",
         fg="black",
         padx=10,
-        pady=5
+        pady=5,
+        command=lambda: export_data(),
     )
     export_btn.pack(pady=20)
 
-
-# Tombol Exit di pojok kanan bawah pada bawah_frame
-exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlightthickness=0)
-exited_canvas.place(relx=0.85, rely=0.25, anchor="center") 
-create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, text="Exit", command=lambda: show_frame(menu_frame))
-
+getdatareport(1)
 # Menangani event ketika aplikasi ditutup
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
