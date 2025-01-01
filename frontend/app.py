@@ -959,9 +959,6 @@ def export_data():
         doc.save(folderuntuksave+"/export-"+current_date+"/"+replacements["<<nama_siswa>>"]+".docx")
     messagebox.showinfo("Success", "Berhasil Menyimpan Report")
 
-
-nisnsiswa = None
-
 def show_student_detail(event):
     global nisnsiswa
     selected_item = table_export_attendance.selection()[0]
@@ -971,9 +968,7 @@ def show_student_detail(event):
     for student in data_report:
         if student['nama'] == student_name:
             getdetailabsenanak(student['nisn'])
-            nisnsiswa = student['nisn']
             break
-    
     show_frame(detail_frame)
     
 # Frame utama backup
@@ -1020,7 +1015,7 @@ table_export_attendance.pack(fill="both", expand=True)
 for col in columns:
     table_export_attendance.heading(col, text=col)
     table_export_attendance.column(col, anchor="center", width=100)
-
+table_export_attendance.bind('<Double-1>', lambda event: show_student_detail(event))
 # Insert sample data
 
 
@@ -1117,7 +1112,6 @@ style.configure("Treeview", rowheight=30, font=("Helvetica", 12))
 back_button = tk.Button(detail_frame, text="Back", command=lambda: show_frame(report_frame))
 back_button.pack(pady=10)
 
-getdetailabsenanak(nisnsiswa)
 
 
 # Menangani event ketika aplikasi ditutup
