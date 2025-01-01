@@ -32,8 +32,10 @@ driver = None
 # pilih_aksi = tk.StringVar()
 btnsave = None
 
-def show_frame(frame):
+def show_frame(frame,tambahan=""):
     # Sembunyikan semua frame
+    if tambahan == "kereport":
+        getdatareport(1)
     for child in root.winfo_children():
         if isinstance(child, tk.Frame):
             child.pack_forget()
@@ -334,7 +336,7 @@ except FileNotFoundError:
 # Tombol Riport di halaman Menu
 riport = tk.Canvas(tengah_tengah_frame, width=110, height=50, bg="white", highlightthickness=0)
 riport.place(relx=0.50, rely=0.85, anchor="center") 
-create_rounded_button(riport, x=5, y=5, width=100, height=40, radius=20, text="Riport", command=lambda: show_frame(report_frame))
+create_rounded_button(riport, x=5, y=5, width=100, height=40, radius=20, text="Report", command=lambda: show_frame(report_frame,"kereport"))
 
 # Load Gambar
 try:
@@ -1036,8 +1038,6 @@ except Exception as e:
         command=lambda: export_data(),
     )
     export_btn.pack(pady=20)
-
-getdatareport(1)
 # Menangani event ketika aplikasi ditutup
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
