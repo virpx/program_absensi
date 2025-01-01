@@ -366,7 +366,7 @@ app.post("/insertlistsiswa", [
             success: 1,
             data: "Berhasil menambahkan siswa"
         })
-    } else if (data2[0] == "tambahtahunajar"){
+    } else if (data2[0] == "tambahtahunajar") {
         var getlast = await TahunAjar.findOne({
             order: [['tahun', 'DESC']]
         })
@@ -376,8 +376,9 @@ app.post("/insertlistsiswa", [
                 data: "Belum saatnya tambah tahun pelajaran baru"
             })
         }
+        currentYear = new Date().getFullYear();
         await TahunAjar.create({
-            tahun: getlast.tahun + 1
+            tahun: currentYear
         })
         try {
             await ListSiswa.truncate()
@@ -476,7 +477,7 @@ app.get("/laporan", [
                 alpha: alpha,
                 hadir: hadir,
                 izin: izin,
-                data:list_absensi
+                data: list_absensi
             })
         }
         return res.status(200).send(outputdata)
@@ -514,7 +515,7 @@ app.get("/laporan", [
                 alpha: alpha,
                 hadir: hadir,
                 izin: izin,
-                data:list_absensi
+                data: list_absensi
             })
         }
         return res.status(200).send(outputdata)
@@ -549,7 +550,7 @@ app.get("/laporan", [
                 alpha: alpha,
                 hadir: hadir,
                 izin: izin,
-                data:list_absensi
+                data: list_absensi
             })
         }
         return res.status(200).send(outputdata)
@@ -613,8 +614,8 @@ app.get("/detailabsen", [
             )
         }
         return res.status(200).send({
-            success: 0,
-            data: [datanake,outputdata]
+            success: 1,
+            data: [datanake, outputdata]
         })
     } else {
         return res.status(400).send({
@@ -622,6 +623,64 @@ app.get("/detailabsen", [
             data: "Murid tidak ditemukan"
         })
     }
+})
+app.get("/backupdatabase", [
+    check('login')
+        .notEmpty().withMessage('Login is required'),
+    check('data')
+        .notEmpty().withMessage('Data is required'),
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
+    }
+    const { login, data } = req.body
+    try {
+        jwt.verify(login, "sistemabsensi");
+    } catch (error) {
+        return res.status(400).send({
+            success: 0,
+            data: "Invalid Token"
+        })
+    }
+    var dataanak = await ListSiswa.findAll()
+    var dataout = []
+    for (const iterator of dataanak) {
+        var dataabsen = await Absensi.findAll({
+            where: {
+                nisn: iterator.nisn
+            }
+        })
+        alpha = 0
+        hadir = 0
+        izin = 0
+        for (const iteratorr of dataabsen) {
+            if (iteratorr.status == 0) {
+                alpha++
+            } else if (iteratorr.status == 1) {
+                hadir++
+            } else {
+                izin++
+            }
+        }
+        dataout.push({
+            nisn: iterator.nisn,
+            nama: iterator.nama,
+            no_ortu: iterator.no_ortu,
+            no_walas: iterator.no_walas,
+            kelas: iterator.kelas,
+            alpha: alpha,
+            hadir: hadir,
+            izin: izin
+        })
+    }
+    return res.status(200).send({
+        success: 1,
+        data: dataout
+    })
 })
 app.get("/")
 sequelize.authenticate().then(() => {

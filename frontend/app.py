@@ -21,7 +21,12 @@ import os
 import json
 import base64
 import pandas as pd
-
+from pathlib import Path
+def pilih_folder(parametertitle):
+    root = tk.Tk()
+    root.withdraw()  # Menyembunyikan jendela utama
+    folder = filedialog.askdirectory(title=parametertitle)  # Membuka dialog untuk memilih folder
+    return folder
 # Inisialisasi driver di luar fungsi agar dapat diakses secara global
 driver = None
 # pilih_aksi = tk.StringVar()
@@ -644,7 +649,7 @@ def savedata():
     if response["success"] == 1:
         df = pd.DataFrame(response["data"]["list"])
         output_file = "Backup Kelas 9 "+str(response["data"]["tahunajar"])+".xlsx"
-        df.to_excel(output_file, index=False)
+        df.to_excel(pilih_folder("Tempat Simpan File Backup Kelas 9")+output_file, index=False)
         payload = {
             "login": tokenlogin,
             "data":"go_insert_siswa#"+base64save
@@ -922,8 +927,9 @@ def export_data():
     for english, indonesia in bulan_indonesia.items():
         tanggal_terformat = tanggal_terformat.replace(english, indonesia)
     replacements["<<tanggal_expxort>>"] = tanggal_terformat
+    folderuntuksave = pilih_folder("Pilih Folder Untuk Menyimpan Report")
     for a in data_report:
-        doc = Document("template_report_siswa.docx")
+        doc = Document(str(Path(__file__).resolve().parent)+"/template_report_siswa.docx")
         replacements["<<nama_siswa>>"] = a["nama"]
         replacements["<<kelas_siswa>>"] = a["kelas"]
         replacements["<<jumlah_alpha>>"] = a["alpha"]
@@ -947,9 +953,9 @@ def export_data():
             table_data.append([b["untuktanggal"],statustulis,keterangantulis])
         add_table(doc, table_data)
         current_date = datetime.now().strftime("%Y-%m-%d")
-        os.makedirs("hasil_export/"+current_date, exist_ok=True)
-        doc.save("hasil_export/"+current_date+"/"+replacements["<<nama_siswa>>"]+".docx")
-
+        os.makedirs(folderuntuksave+"/export-"+current_date, exist_ok=True)
+        doc.save(folderuntuksave+"/export-"+current_date+"/"+replacements["<<nama_siswa>>"]+".docx")
+    messagebox.showinfo("Success", "Berhasil Menyimpan Report")
 
 # Frame utama backup
 report_frame = tk.Frame(root, bg="white")
@@ -1035,7 +1041,7 @@ getdatareport(1)
 # Menangani event ketika aplikasi ditutup
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
-show_frame(backup_frame) 
+show_frame(report_frame) 
 
 # Jalankan aplikasi
 root.mainloop()
