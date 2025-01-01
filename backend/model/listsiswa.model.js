@@ -19,7 +19,7 @@ const ListSiswa = sequelize.define('ListSiswa', {
         allowNull: false,
     },
     kelas: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.TEXT,
         allowNull: true,
     },
 }, {

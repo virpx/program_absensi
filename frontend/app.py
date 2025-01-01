@@ -24,8 +24,7 @@ driver = None
 # pilih_aksi = tk.StringVar()
 btnsave = None
 list_entry_add_siswa = []
-
-
+tokenlogin = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzU3MDAxNzIsImRhdGEiOiJhZG1pbmxvZ2luIiwiaWF0IjoxNzM1NjEzNzcyfQ.iTkBpsCsRi_lvOr-NpvPRPH67U9kj0_zMmBaSsqn4HI"
 # Fungsi untuk mengecek login setiap beberapa detik
 def check_login_status():
     if is_logged_in():
@@ -145,16 +144,22 @@ root.geometry("1000x1000")
 def login():
     userid = email_entry.get()
     password = password_entry.get()
-
-    if userid == "admin" and password == "admin":
+    payload = {
+        "username": userid,
+        "password":password
+    }
+    response = requests.post("http://localhost:3000/login", data=payload)
+    datalogin = json.loads(response.text)
+    if datalogin["success"] == 0:
+        messagebox.showerror("Login Failed", datalogin["data"])
+    else:
         # Pindah ke frame QR Code
+        tokenlogin = datalogin["data"]
         email_entry.delete(0, tk.END)
         password_entry.delete(0, tk.END)
         login_frame.pack_forget()
         menu_frame.pack(fill="both", expand=True)
         # fetch_and_show_qr_code()
-    else:
-        messagebox.showerror("Login Failed", "Invalid username or password")
 
 login_frame = tk.Frame(root, bg="white")
 # login_frame.pack(fill="both", expand=True)
@@ -428,8 +433,18 @@ create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, t
 def go_login():
     absen_frame.pack_forget()
     login_frame.pack(fill="both", expand=True)    
-
-
+def on_key_release(e):
+    global tokenlogin
+    if len(nik_entry.get()) == 10:
+        payload = {
+            "login": tokenlogin,
+            "data":nik_entry.get()
+        }
+        response = requests.post("http://localhost:3000/absen", data=payload)
+        datalogin = json.loads(response.text)
+        if datalogin['success'] == 0:
+            messagebox.showerror("Gagal Absen", datalogin["data"])
+        nik_entry.delete(0,tk.END)
 absen_frame = tk.Frame(root,bg="white")
 # absen_frame.pack(fill="both", expand=True)
 
@@ -627,7 +642,7 @@ def loadexcel():
         messagebox.showerror("Error", f"Failed to load file: {e}")
 def savedata():
     payload = {
-        "login": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzM0NjY0MDksImRhdGEiOiJhZG1pbmxvZ2luIiwiaWF0IjoxNzMzMzgwMDA5fQ.FlF-DqJHpnniS-wElqGw1sDTUFWH1x00cOlnDO4Owxo",
+        "login": tokenlogin,
         "data":"get_backup_data"
     }
     response = requests.post("http://localhost:3000/backupkelas9", data=payload)
@@ -637,12 +652,31 @@ def savedata():
         output_file = "Backup Kelas 9 "+str(response["data"]["tahunajar"])+".xlsx"
         df.to_excel(output_file, index=False)
         payload = {
-            "login": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzM0NjY0MDksImRhdGEiOiJhZG1pbmxvZ2luIiwiaWF0IjoxNzMzMzgwMDA5fQ.FlF-DqJHpnniS-wElqGw1sDTUFWH1x00cOlnDO4Owxo",
+            "login": tokenlogin,
             "data":"go_insert_siswa#"+base64save
         }
         response = requests.post("http://localhost:3000/insertlistsiswa", data=payload)
-        print(response.text)
-        messagebox.showinfo("Success", "Data loaded and encoded successfully!")
+        response = json.loads(response.text)
+        if response["success"] == 1:
+            messagebox.showinfo("Success", "Berhasil Menambahkan Data")
+        else:
+            if response["data"] == "err_tahunajar":
+                tanyabuat = messagebox.askyesno("Konfirmasi", "Apakah ingin membuat tahun ajar baru?")
+                if tanyabuat:
+                    payload = {
+                        "login": tokenlogin,
+                        "data":"tambahtahunajar#"+base64save
+                    }
+                    response = requests.post("http://localhost:3000/insertlistsiswa", data=payload)
+                    response = json.loads(response.text)
+                    if response["success"] == 1:
+                        messagebox.showinfo("Success", "Berhasil Menambahkan Data")
+                    else:
+                        messagebox.showwarning("Error", response["data"])
+            else:
+                messagebox.showwarning("Error", response["data"])
+    else:
+        messagebox.showwarning("Error", response["data"])
 
 # Frame utama
 input_frame = tk.Frame(root, bg="white")
@@ -676,14 +710,18 @@ tree.configure(yscrollcommand=scrollbar.set)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame update presensi kehadiran siswa # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Data contoh siswa
-siswa_data = [
-    {"id": 1, "nama": "Ahmad Setiawan"},
-    {"id": 2, "nama": "Budi Santoso"},
-    {"id": 3, "nama": "Citra Lestari"},
-    {"id": 4, "nama": "Dewi Kurnia"},
-    {"id": 5, "nama": "Eka Prasetyo"}
-]
-
+siswa_data = []
+def loaddataedit():
+    global siswa_data
+    payload = {
+        "login": tokenlogin,
+        "data":"g"
+    }
+    response = requests.get("http://localhost:3000/listabsenhariini", data=payload)
+    datalogin = json.loads(response.text)
+    siswa_data = datalogin
+    for siswa in siswa_data:
+        display_siswa(siswa)
 # Fungsi untuk mencari siswa
 def search_siswa():
     search_query = search_entry.get().lower()
@@ -696,7 +734,8 @@ def search_siswa():
             display_siswa(siswa)
     else:
         tk.Label(result_frame, text="Siswa tidak ditemukan.", fg="red", bg="white").pack(pady=5)
-
+# def gantiabsen():
+    
 # Fungsi untuk menampilkan siswa dengan checkbox
 def display_siswa(siswa):
     siswa_frame = tk.Frame(result_frame, bg="white")
@@ -709,21 +748,36 @@ def display_siswa(siswa):
     masuk_var = tk.BooleanVar()
     izin_var = tk.BooleanVar()
     absen_var = tk.BooleanVar()
-
+    if siswa['status'] == 0:
+        absen_var.set(True)
+    elif siswa['status'] == 1:
+        masuk_var.set(True)
+    elif siswa['status'] == 2:
+        izin_var.set(True)
     def on_check(var):
         if var == "masuk":
             izin_var.set(False)
             absen_var.set(False)
+            if masuk_var.get() == False:
+                masuk_var.set(True)
+            keterangan_izin.pack_forget()
         elif var == "izin":
             masuk_var.set(False)
             absen_var.set(False)
+            if izin_var.get():
+                keterangan_izin.pack(side="left", padx=5)
+            else:
+                izin_var.set(True)
         elif var == "absen":
             masuk_var.set(False)
             izin_var.set(False)
-
+            keterangan_izin.pack_forget()
+            if absen_var.get() == False:
+                absen_var.set(True)
     masuk_checkbox = tk.Checkbutton(siswa_frame, text="Masuk", variable=masuk_var, command=lambda: on_check("masuk"), bg="white", fg="black")
     izin_checkbox = tk.Checkbutton(siswa_frame, text="Izin", variable=izin_var, command=lambda: on_check("izin"), bg="white",fg="black")
     absen_checkbox = tk.Checkbutton(siswa_frame, text="Absen", variable=absen_var, command=lambda: on_check("absen"), bg="white",fg="black")
+    keterangan_izin = tk.Entry(siswa_frame)
 
     masuk_checkbox.pack(side="left", padx=5)
     izin_checkbox.pack(side="left", padx=5)
@@ -731,18 +785,24 @@ def display_siswa(siswa):
 
     # Tombol Save menggunakan ttk.Button
     def save_attendance():
-        status = "Belum dipilih"
+        datakirim = ""
         if masuk_var.get():
-            status = "Masuk"
+            datakirim = str(siswa['nisn'])+"#1"
         elif izin_var.get():
-            status = "Izin"
+            datakirim = str(siswa['nisn'])+"#2#"+keterangan_izin.get()
         elif absen_var.get():
-            status = "Absen"
-        messagebox.showinfo("Status Kehadiran", f"Nama: {siswa['nama']}\nStatus: {status}")
+            datakirim = str(siswa['nisn'])+"#0"
+        payload = {
+            "login": tokenlogin,
+            "data":datakirim
+        }
+        response = requests.post("http://localhost:3000/ubahabsen", data=payload)
+        print(response.text)
+        datalogin = json.loads(response.text)
+        messagebox.showinfo("Status Ubah Presensi", f"Nama: {siswa['nama']}\nStatus: {datalogin['data']}")
 
     save_button = ttk.Button(siswa_frame, text="Save", command=save_attendance, style="Purple.TButton")
     save_button.pack(side="left", padx=10)
-
 # Styling tombol dengan ttk
 style = ttk.Style()
 style.configure("Purple.TButton", background="#800080", foreground="white", font=("Arial", 10))
@@ -774,6 +834,7 @@ search_button.pack(side="left")
 # Frame untuk menampilkan hasil
 result_frame = tk.Frame(update_frame, bg="white")
 result_frame.pack(fill="x", pady=10)
+loaddataedit()
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Riport # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

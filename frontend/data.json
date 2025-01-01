@@ -1,0 +1,16 @@
+[
+    {
+        "nisn": 123,
+        "nama": "asep",
+        "no_ortu": 620895,
+        "no_walas": 8951,
+        "kelas": "7A"
+    },
+    {
+        "nisn": 1234,
+        "nama": "budi",
+        "no_ortu": 620895,
+        "no_walas": 8951,
+        "kelas": "7A"
+    }
+]

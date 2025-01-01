@@ -53,6 +53,8 @@ async function generateabsen() {
         for (const iterator of ambillistsiswa) {
             await Absensi.create({
                 nisn: iterator["nisn"],
+                nama: iterator["nama"],
+                kelas: iterator["kelas"],
                 status: 0,
                 untuktanggal: gettanggal(1)
             })
@@ -67,7 +69,10 @@ app.post("/login", [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
     }
     const { username, password } = req.body
     if (username == "admin") {
@@ -107,7 +112,10 @@ app.post("/absen", [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
     }
     const { login, data } = req.body
     try {
@@ -126,13 +134,20 @@ app.post("/absen", [
             }
         }
     );
-    datamuride.status = 1
-    datamuride.timestamp = gettanggal(2);
-    await datamuride.save()
-    return res.status(200).send({
-        success: 1,
-        data: "Berhasil Absen"
-    })
+    if (datamuride) {
+        datamuride.status = 1
+        datamuride.timestamp = gettanggal(2);
+        await datamuride.save()
+        return res.status(200).send({
+            success: 1,
+            data: "Berhasil Absen"
+        })
+    } else {
+        return res.status(400).send({
+            success: 0,
+            data: "NISN Tidak Ditemukan"
+        })
+    }
 })
 app.post("/ubahabsen", [
     check('login')
@@ -142,7 +157,10 @@ app.post("/ubahabsen", [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
     }
     const { login, data } = req.body
     try {
@@ -162,11 +180,24 @@ app.post("/ubahabsen", [
             }
         }
     );
-    datamuride.status = dataparse[1]
-    if (dataparse[1] == 2) {
-        datamuride.keteragan = dataparse[2]
+    if (dataparse[1] == 2 && dataparse[2] == "") {
+        return res.status(400).send({
+            success: 0,
+            data: "Keterangan tidak boleh kosong!"
+        })
+    } else {
+        datamuride.status = dataparse[1]
+        if (dataparse[1] == 2) {
+            datamuride.keteragan = dataparse[2]
+        } else {
+            datamuride.keteragan = null
+        }
+        await datamuride.save()
+        return res.status(200).send({
+            success: 1,
+            data: "Berhasil Ubah Kehadiran"
+        })
     }
-    await datamuride.save()
 })
 app.get("/listabsenhariini", [
     check('login')
@@ -176,7 +207,10 @@ app.get("/listabsenhariini", [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
     }
     const { login } = req.body
     try {
@@ -196,49 +230,6 @@ app.get("/listabsenhariini", [
     );
     return res.status(200).send(dataabsenhariini)
 })
-app.post("/tambahtahunajar", [
-    check('login')
-        .notEmpty().withMessage('Login is required'),
-    check('data')
-        .notEmpty().withMessage('Data is required'),
-], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-    const { login, data } = req.body
-    try {
-        jwt.verify(login, "sistemabsensi");
-    } catch (error) {
-        return res.status(400).send({
-            success: 0,
-            data: "Invalid Token"
-        })
-    }
-    if (data == "tambah_tahun_ajar") {
-        var getlast = await TahunAjar.findOne({
-            order: [['tahun', 'DESC']]
-        })
-        if (getlast.tahun == gettanggal(3)) {
-            return res.status(400).send({
-                success: 0,
-                data: "Belum saatnya tambah tahun pelajaran baru"
-            })
-        }
-        await TahunAjar.create({
-            tahun: getlast.tahun + 1
-        })
-        return res.status(200).send({
-            success: 1,
-            data: "Berhasil Tambah Tahun Pelajaran"
-        })
-    } else {
-        return res.status(400).json({
-            success: 0,
-            data: "Invalid Data"
-        })
-    }
-})
 app.post("/backupkelas9", [
     check('login')
         .notEmpty().withMessage('Login is required'),
@@ -247,7 +238,10 @@ app.post("/backupkelas9", [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
     }
     const { login, data } = req.body
     try {
@@ -258,10 +252,15 @@ app.post("/backupkelas9", [
             data: "Invalid Token"
         })
     }
+    var getlast = await TahunAjar.findOne({
+        order: [['tahun', 'DESC']]
+    })
     if (data == "get_backup_data") {
         var list_kelas9 = await ListSiswa.findAll({
             where: {
-                kelas: 9
+                kelas: {
+                    [Op.like]: "9%"
+                }
             }
         })
         var data_kehadiran = []
@@ -286,12 +285,19 @@ app.post("/backupkelas9", [
             }
             data_kehadiran.push({
                 nama: iterator.nama,
+                kelas: iterator.kelas,
                 alpha: alpha,
                 hadir: hadir,
                 izin: izin
             })
         }
-        return res.status(200).send(data_kehadiran)
+        return res.status(200).send({
+            success: 1,
+            data: {
+                tahunajar: getlast.tahun,
+                list: data_kehadiran
+            }
+        })
     } else {
         return res.status(400).send({
             success: 0,
@@ -307,7 +313,10 @@ app.post("/insertlistsiswa", [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
     }
     const { login, data } = req.body
     try {
@@ -318,25 +327,26 @@ app.post("/insertlistsiswa", [
             data: "Invalid Token"
         })
     }
-    var getlast = await TahunAjar.findOne({
-        order: [['tahun', 'DESC']]
-    })
-    if (getlast.tahun == gettanggal(3)) {
-        return res.status(400).send({
-            success: 0,
-            data: "Belum saatnya melakukan insert data siswa"
-        })
-    } else if (getlast.tahun < gettanggal(3)) {
-        return res.status(400).send({
-            success: 0,
-            data: "Harap buat tahun ajaran baru sebelum melakukan insert siswa"
-        })
-    }
     data2 = data.split("#")
     if (data2[0] == "go_insert_siswa") {
-        await ListSiswa.truncate()
-        try{
+        var getlast = await TahunAjar.findOne({
+            order: [['tahun', 'DESC']]
+        })
+        if (getlast.tahun == gettanggal(3)) {
+            return res.status(400).send({
+                success: 0,
+                data: "Belum saatnya melakukan insert data siswa"
+            })
+        } else if (getlast.tahun < gettanggal(3)) {
+            return res.status(400).send({
+                success: 0,
+                data: "err_tahunajar"
+            })
+        }
+        try {
+            await ListSiswa.truncate()
             listsiswa = JSON.parse(atob(data2[1]))
+            // console.log(listsiswa)
             for (const iterator of listsiswa) {
                 await ListSiswa.create({
                     nisn: iterator.nisn,
@@ -346,7 +356,43 @@ app.post("/insertlistsiswa", [
                     kelas: iterator.kelas,
                 })
             }
-        }catch{
+        } catch {
+            return res.status(400).send({
+                success: 0,
+                data: "Error menambahkan siswa"
+            })
+        }
+        return res.status(200).send({
+            success: 1,
+            data: "Berhasil menambahkan siswa"
+        })
+    } else if (data2[0] == "tambahtahunajar"){
+        var getlast = await TahunAjar.findOne({
+            order: [['tahun', 'DESC']]
+        })
+        if (getlast.tahun == gettanggal(3)) {
+            return res.status(400).send({
+                success: 0,
+                data: "Belum saatnya tambah tahun pelajaran baru"
+            })
+        }
+        await TahunAjar.create({
+            tahun: getlast.tahun + 1
+        })
+        try {
+            await ListSiswa.truncate()
+            listsiswa = JSON.parse(atob(data2[1]))
+            // console.log(listsiswa)
+            for (const iterator of listsiswa) {
+                await ListSiswa.create({
+                    nisn: iterator.nisn,
+                    nama: iterator.nama,
+                    no_ortu: iterator.no_ortu,
+                    no_walas: iterator.no_walas,
+                    kelas: iterator.kelas,
+                })
+            }
+        } catch {
             return res.status(400).send({
                 success: 0,
                 data: "Error menambahkan siswa"
@@ -371,7 +417,10 @@ app.get("/laporan", [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
     }
     const { login, data } = req.body
     try {
@@ -423,9 +472,11 @@ app.get("/laporan", [
             outputdata.push({
                 nisn: iterator.nisn,
                 nama: iterator.nama,
+                kelas: iterator.kelas,
                 alpha: alpha,
                 hadir: hadir,
-                izin: izin
+                izin: izin,
+                data:list_absensi
             })
         }
         return res.status(200).send(outputdata)
@@ -459,9 +510,11 @@ app.get("/laporan", [
             outputdata.push({
                 nisn: iterator.nisn,
                 nama: iterator.nama,
+                kelas: iterator.kelas,
                 alpha: alpha,
                 hadir: hadir,
-                izin: izin
+                izin: izin,
+                data:list_absensi
             })
         }
         return res.status(200).send(outputdata)
@@ -492,9 +545,11 @@ app.get("/laporan", [
             outputdata.push({
                 nisn: iterator.nisn,
                 nama: iterator.nama,
+                kelas: iterator.kelas,
                 alpha: alpha,
                 hadir: hadir,
-                izin: izin
+                izin: izin,
+                data:list_absensi
             })
         }
         return res.status(200).send(outputdata)
@@ -513,7 +568,10 @@ app.get("/detailabsen", [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
     }
     const { login, data } = req.body
     try {
@@ -524,31 +582,46 @@ app.get("/detailabsen", [
             data: "Invalid Token"
         })
     }
-    var listabsenanak = await Absensi.findAll({
-        where:{
-            nisn:data
+    var datanake = await ListSiswa.findOne({
+        where: {
+            nisn: data
         }
     })
-    var outputdata = []
-    for (const iterator of listabsenanak) {
-        if (iterator.status == 0) {
-            stringstatus = "Alpha"
-        } else if (iterator.status == 1) {
-            stringstatus = "Hadir"
-        } else {
-            stringstatus = "izin"
-        }
-        outputdata.push(
-            {
-                kelas : iterator.kelas,
-                untuktanggal : iterator.untuktanggal,
-                timestampdatang: iterator.timestamp,
-                status: stringstatus,
-                keteragan: iterator.keterangan
+    if (datanake) {
+        var listabsenanak = await Absensi.findAll({
+            where: {
+                nisn: data
             }
-        )
+        })
+        var outputdata = []
+        for (const iterator of listabsenanak) {
+            if (iterator.status == 0) {
+                stringstatus = "Alpha"
+            } else if (iterator.status == 1) {
+                stringstatus = "Hadir"
+            } else {
+                stringstatus = "izin"
+            }
+            outputdata.push(
+                {
+                    kelas: iterator.kelas,
+                    untuktanggal: iterator.untuktanggal,
+                    timestampdatang: iterator.timestamp,
+                    status: stringstatus,
+                    keterangan: iterator.keterangan == null ? "-" : iterator.keteragan
+                }
+            )
+        }
+        return res.status(200).send({
+            success: 0,
+            data: [datanake,outputdata]
+        })
+    } else {
+        return res.status(400).send({
+            success: 0,
+            data: "Murid tidak ditemukan"
+        })
     }
-    return res.status(200).send(outputdata)
 })
 app.get("/")
 sequelize.authenticate().then(() => {
