@@ -826,71 +826,109 @@ def search_siswa():
     
 # Fungsi untuk menampilkan siswa dengan checkbox
 def display_siswa(siswa):
-    siswa_frame = tk.Frame(result_frame, bg="white")
-    siswa_frame.pack(fill="x", pady=5)
+    siswa_frame = tk.Frame(result_frame, bg="white", pady=10)
+    siswa_frame.pack(fill="x", padx=15)
 
-    name_label = tk.Label(siswa_frame, text=siswa["nama"], bg="white", fg="black")
-    name_label.pack(side="left", padx=10)
+    # Frame untuk nama
+    name_frame = tk.Frame(siswa_frame, bg="white")
+    name_frame.pack(side="left")
+    
+    name_label = tk.Label(name_frame, text=siswa["nama"], bg="white", fg="black", 
+                         font=("Helvetica", 11, "bold"), width=20, anchor="w")
+    name_label.pack(side="left")
 
-    # Checkbox
+    # Frame untuk checkbox
+    checkbox_frame = tk.Frame(siswa_frame, bg="white")
+    checkbox_frame.pack(side="left", padx=10)
+
     masuk_var = tk.BooleanVar()
     izin_var = tk.BooleanVar()
     absen_var = tk.BooleanVar()
+    
     if siswa['status'] == 0:
         absen_var.set(True)
     elif siswa['status'] == 1:
         masuk_var.set(True)
     elif siswa['status'] == 2:
         izin_var.set(True)
+
     def on_check(var):
         if var == "masuk":
             izin_var.set(False)
             absen_var.set(False)
             if masuk_var.get() == False:
                 masuk_var.set(True)
-            keterangan_izin.pack_forget()
+            keterangan_frame.pack_forget()
         elif var == "izin":
             masuk_var.set(False)
             absen_var.set(False)
             if izin_var.get():
-                keterangan_izin.pack(side="left", padx=5)
+                keterangan_frame.pack(side="left", padx=(10,0))
             else:
                 izin_var.set(True)
         elif var == "absen":
             masuk_var.set(False)
             izin_var.set(False)
-            keterangan_izin.pack_forget()
+            keterangan_frame.pack_forget()
             if absen_var.get() == False:
                 absen_var.set(True)
-    masuk_checkbox = tk.Checkbutton(siswa_frame, text="Masuk", variable=masuk_var, command=lambda: on_check("masuk"), bg="white", fg="black")
-    izin_checkbox = tk.Checkbutton(siswa_frame, text="Izin", variable=izin_var, command=lambda: on_check("izin"), bg="white",fg="black")
-    absen_checkbox = tk.Checkbutton(siswa_frame, text="Absen", variable=absen_var, command=lambda: on_check("absen"), bg="white",fg="black")
-    keterangan_izin = tk.Entry(siswa_frame)
+
+    # Style untuk checkbox
+    style = ttk.Style()
+    style.configure("Custom.TCheckbutton", background="white", font=("Helvetica", 10))
+
+    masuk_checkbox = ttk.Checkbutton(checkbox_frame, text="Masuk", variable=masuk_var, 
+                                    command=lambda: on_check("masuk"), style="Custom.TCheckbutton")
+    izin_checkbox = ttk.Checkbutton(checkbox_frame, text="Izin", variable=izin_var, 
+                                   command=lambda: on_check("izin"), style="Custom.TCheckbutton")
+    absen_checkbox = ttk.Checkbutton(checkbox_frame, text="Absen", variable=absen_var, 
+                                    command=lambda: on_check("absen"), style="Custom.TCheckbutton")
 
     masuk_checkbox.pack(side="left", padx=5)
     izin_checkbox.pack(side="left", padx=5)
     absen_checkbox.pack(side="left", padx=5)
 
-    # Tombol Save menggunakan ttk.Button
+    # Frame untuk keterangan
+    keterangan_frame = tk.Frame(siswa_frame, bg="white")
+    if siswa['status'] == 2:
+        keterangan_frame.pack(side="left", padx=(10,0))
+    
+    keterangan_label = tk.Label(keterangan_frame, text="Keterangan:", bg="white", font=("Helvetica", 10))
+    keterangan_label.pack(side="left")
+    
+    keterangan_izin = tk.Entry(keterangan_frame, font=("Helvetica", 10), width=20)
+    keterangan_izin.pack(side="left", padx=(5,10))
+
     def save_attendance():
         datakirim = ""
         if masuk_var.get():
-            datakirim = str(siswa['nisn'])+"#1"
+            datakirim = f"{siswa['nisn']}#1"
         elif izin_var.get():
-            datakirim = str(siswa['nisn'])+"#2#"+keterangan_izin.get()
+            datakirim = f"{siswa['nisn']}#2#{keterangan_izin.get()}"
         elif absen_var.get():
-            datakirim = str(siswa['nisn'])+"#0"
+            datakirim = f"{siswa['nisn']}#0"
+            
         payload = {
             "login": tokenlogin,
-            "data":datakirim
+            "data": datakirim
         }
         response = requests.post("http://localhost:3000/ubahabsen", data=payload)
-        print(response.text)
         datalogin = json.loads(response.text)
         messagebox.showinfo("Status Ubah Presensi", f"Nama: {siswa['nama']}\nStatus: {datalogin['data']}")
 
-    save_button = ttk.Button(siswa_frame, text="Save", command=save_attendance, style="Purple.TButton")
-    save_button.pack(side="left", padx=10)
+    # Frame untuk button save
+    button_frame = tk.Frame(siswa_frame, bg="white")
+    button_frame.pack(side="right", padx=15)
+
+    style.configure("Save.TButton", 
+                   font=("Helvetica", 10),
+                   padding=5,
+                   background="#4CAF50")
+                   
+    save_button = ttk.Button(button_frame, text="Save", 
+                            command=save_attendance, 
+                            style="Save.TButton")
+    save_button.pack(side="right")
 
 
 # Styling tombol dengan ttk
@@ -1183,7 +1221,7 @@ back_button.pack(pady=10)
 # Menangani event ketika aplikasi ditutup
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
-show_frame(backup_frame) 
+show_frame(login_frame) 
 
 # Jalankan aplikasi
 root.mainloop()
