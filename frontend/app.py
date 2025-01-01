@@ -725,6 +725,58 @@ tree.configure(yscrollcommand=scrollbar.set)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame backup database # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
+# Palet warna utama
+primary_color = "#6A1B9A"  # Ungu untuk aksen utama
+background_color = "white"
+
+# Frame utama database
+backup_frame = tk.Frame(root, bg="white")
+
+# Judul Menu
+title_label = tk.Label(backup_frame, text="Back Up Database", bg=background_color, fg="Black", font=("Arial", 24, "bold"))
+title_label.pack(pady=20)
+
+# Section Tengah (terdiri dari kiri, tengah, dan kanan)
+tengah_frame = tk.Frame(backup_frame, bg=background_color)
+tengah_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+# Bagian Kiri di Tengah
+kiri_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
+kiri_frame.pack(side="left", fill="y", padx=20, pady=20)
+
+# Bagian Tengah di Tengah
+tengah_tengah_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
+tengah_tengah_frame.pack(side="left", fill="both", expand=True, padx=20, pady=20)
+
+# Bagian Kanan di Tengah
+kanan_frame = tk.Frame(tengah_frame, bg=background_color, width=200)
+kanan_frame.pack(side="right", fill="y", padx=20, pady=20)
+
+# Section Bawah
+bawah_frame = tk.Frame(backup_frame, bg=background_color, height=80)
+bawah_frame.pack(side="bottom", fill="x", padx=20, pady=10)
+
+# Load Gambar
+try:
+    image_path = "assets/reicon.png"  # Pastikan jalur sesuai dengan lokasi file gambar Anda
+    loaded_image = load_image(image_path, 250, 250)  # Mengatur ukuran gambar
+    img_label = tk.Label(tengah_tengah_frame, image=loaded_image, bg="white")
+    img_label.image = loaded_image  # Menyimpan referensi agar tidak dihapus oleh garbage collector
+    img_label.pack(pady=20)
+except FileNotFoundError:
+    error_label = tk.Label(tengah_tengah_frame, text="Gambar tidak ditemukan!", fg="red", bg="white")
+    error_label.pack(pady=20)
+
+# Tombol Riport di halaman Menu
+riport = tk.Canvas(tengah_tengah_frame, width=150, height=50, bg="white", highlightthickness=0)
+riport.place(relx=0.50, rely=0.65, anchor="center") 
+create_rounded_button(riport, x=5, y=5, width=140, height=40, radius=20, text="Backup Database", command="")
+
+
+# Tombol Exit di pojok kanan bawah pada bawah_frame
+exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlightthickness=0)
+exited_canvas.place(relx=0.85, rely=0.25, anchor="center") 
+create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, text="Exit", command=lambda: show_frame(databases_frame))
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame update presensi kehadiran siswa # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
