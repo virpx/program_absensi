@@ -688,6 +688,9 @@ def savedata():
                     response = json.loads(response.text)
                     if response["success"] == 1:
                         messagebox.showinfo("Success", "Berhasil Menambahkan Data")
+
+                        tree.delete(*tree.get_children())
+                        show_frame(databases_frame)
                     else:
                         messagebox.showwarning("Error", response["data"])
             else:
