@@ -22,23 +22,16 @@ CREATE TABLE `absensi` (
   `id` int NOT NULL AUTO_INCREMENT,
   `nisn` int NOT NULL,
   `nama` text,
-  `kelas` int DEFAULT NULL,
+  `kelas` char(2) DEFAULT NULL,
   `status` int DEFAULT '0',
   `tahunpelajaran` int DEFAULT NULL,
   `timestamp` datetime DEFAULT NULL,
   `keterangan` text,
   `untuktanggal` date DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 /*Data for the table `absensi` */
-
-insert  into `absensi`(`id`,`nisn`,`nama`,`kelas`,`status`,`tahunpelajaran`,`timestamp`,`keterangan`,`untuktanggal`) values 
-(1,123,'a',NULL,1,NULL,'2024-11-03 00:42:13',NULL,'2024-11-17'),
-(2,123,'a',NULL,0,NULL,NULL,NULL,'2024-11-24'),
-(3,123,'a',NULL,0,NULL,NULL,NULL,'2024-11-24'),
-(4,123,'a',NULL,0,0,NULL,NULL,'2024-11-24'),
-(5,124,'b',NULL,0,0,NULL,NULL,'2024-11-24');
 
 /*Table structure for table `list_siswa` */
 
@@ -47,15 +40,11 @@ CREATE TABLE `list_siswa` (
   `nama` text NOT NULL,
   `no_ortu` int NOT NULL,
   `no_walas` int NOT NULL,
-  `kelas` int DEFAULT NULL,
+  `kelas` char(2) DEFAULT NULL,
   PRIMARY KEY (`nisn`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 /*Data for the table `list_siswa` */
-
-insert  into `list_siswa`(`nisn`,`nama`,`no_ortu`,`no_walas`,`kelas`) values 
-(123,'asep',895,8951,9),
-(124,'budi',888,81,9);
 
 /*Table structure for table `tahunajar` */
 
@@ -67,10 +56,7 @@ CREATE TABLE `tahunajar` (
 /*Data for the table `tahunajar` */
 
 insert  into `tahunajar`(`tahun`) values 
-(2023),
-(2024),
-(2025),
-(2026);
+(2000);
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
