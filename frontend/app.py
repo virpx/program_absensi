@@ -380,7 +380,13 @@ def fetch_and_show_qr_code():
         time.sleep(4)
         
         # Tunggu elemen dengan atribut data-ref muncul
-        qr_element = driver.find_element("css selector", "div[data-ref]")
+        while True:
+            try:
+                qr_element = driver.find_element("css selector", "div[data-ref]")
+                time.sleep(1)
+                break
+            except:
+                pass
 
         # Dapatkan nilai dari atribut data-ref
         data_ref = qr_element.get_attribute("data-ref")
