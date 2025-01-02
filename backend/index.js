@@ -686,6 +686,39 @@ app.get("/backupdatabase", [
         data: dataout
     })
 })
+app.get("/getlistanak",[
+    check('login')
+        .notEmpty().withMessage('Login is required'),
+    check('data')
+        .notEmpty().withMessage('Data is required'),
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
+    }
+    const { login, data } = req.body
+    try {
+        jwt.verify(login, "sistemabsensi");
+    } catch (error) {
+        return res.status(400).send({
+            success: 0,
+            data: "Invalid Token"
+        })
+    }
+    var dataanak = await ListSiswa.findAll()
+    var listsend = []
+    for (const iterator of dataanak) {
+        listsend.push({
+            nisn:iterator.nisn,
+            nama:iterator.nama,
+            no_hp_ortu:iterator.no_ortu
+        })
+    }
+    return res.status(200).send(listsend)
+})
 app.get("/")
 sequelize.authenticate().then(() => {
     console.log('Connection has been established successfully.');

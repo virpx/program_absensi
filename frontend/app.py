@@ -36,6 +36,8 @@ def show_frame(frame,tambahan=""):
     # Sembunyikan semua frame
     if tambahan == "kereport":
         getdatareport(1)
+    elif tambahan == "keupdate":
+        loaddataedit()
     for child in root.winfo_children():
         if isinstance(child, tk.Frame):
             child.pack_forget()
@@ -46,8 +48,15 @@ list_entry_add_siswa = []
 tokenlogin = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzU4MTAzNDUsImRhdGEiOiJhZG1pbmxvZ2luIiwiaWF0IjoxNzM1NzIzOTQ1fQ.CtdTeCdYGEcBlWA3-sB4KMPPDYR2HF_2X91KqpS89Zo"
 # Fungsi untuk mengecek login setiap beberapa detik
 def check_login_status():
+    global data_siswa
     if is_logged_in():
         show_frame(absen_frame)
+        payload = {
+            "login": tokenlogin,
+            "data":"g"
+        }
+        response = requests.post("http://localhost:3000/getlistanak", data=payload)
+        data_siswa = json.loads(response.text)
     else:
         # Cek lagi dalam 5 detik
         root.after(5000, check_login_status)
@@ -160,6 +169,7 @@ root.geometry("1000x1000")
 
 
 def login():
+    global tokenlogin
     userid = email_entry.get()
     password = password_entry.get()
     payload = {
@@ -434,18 +444,18 @@ back_button.pack(pady=20)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Absensi # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-def on_key_release(e):
-    global tokenlogin
-    if len(nik_entry.get()) == 10:
-        payload = {
-            "login": tokenlogin,
-            "data":nik_entry.get()
-        }
-        response = requests.post("http://localhost:3000/absen", data=payload)
-        datalogin = json.loads(response.text)
-        if datalogin['success'] == 0:
-            messagebox.showerror("Gagal Absen", datalogin["data"])
-        nik_entry.delete(0,tk.END)
+# def on_key_release(e):
+#     global tokenlogin
+#     if len(nik_entry.get()) == 10:
+#         payload = {
+#             "login": tokenlogin,
+#             "data":nik_entry.get()
+#         }
+#         response = requests.post("http://localhost:3000/absen", data=payload)
+#         datalogin = json.loads(response.text)
+#         if datalogin['success'] == 0:
+#             messagebox.showerror("Gagal Absen", datalogin["data"])
+#         nik_entry.delete(0,tk.END)
 absen_frame = tk.Frame(root,bg="white")
 
 # Membuat dua section di dalam frame absensi
@@ -589,7 +599,7 @@ except FileNotFoundError:
 # Tombol Absensi Siswa di halaman Menu
 absensi = tk.Canvas(kanan_frame, width=150, height=50, bg="white", highlightthickness=0)
 absensi.place(relx=0.50, rely=0.65, anchor="center") 
-create_rounded_button(absensi, x=5, y=5, width=140, height=40, radius=20, text="Update Presensi", command=lambda: show_frame(update_frame))
+create_rounded_button(absensi, x=5, y=5, width=140, height=40, radius=20, text="Update Presensi", command=lambda: show_frame(update_frame,"keupdate"))
 
 # Tombol Exit di pojok kanan bawah pada bawah_frame
 exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlightthickness=0)
@@ -809,6 +819,7 @@ def loaddataedit():
         "data":"g"
     }
     response = requests.get("http://localhost:3000/listabsenhariini", data=payload)
+    print(response.text)
     datalogin = json.loads(response.text)
     siswa_data = datalogin
     for siswa in siswa_data:
@@ -976,7 +987,6 @@ search_button.pack(side="left")
 # Frame untuk menampilkan hasil
 result_frame = tk.Frame(update_frame, bg="white")
 result_frame.pack(fill="x", pady=10)
-loaddataedit()
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Riport # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
