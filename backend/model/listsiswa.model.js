@@ -2,7 +2,7 @@ const sequelize = require(".");
 const { DataTypes } = require('sequelize');
 const ListSiswa = sequelize.define('ListSiswa', {
     nisn: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.TEXT,
         primaryKey: true,
         allowNull: false,
     },
@@ -11,11 +11,11 @@ const ListSiswa = sequelize.define('ListSiswa', {
         allowNull: false,
     },
     no_ortu: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.TEXT,
         allowNull: false,
     },
     no_walas: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.TEXT,
         allowNull: false,
     },
     kelas: {

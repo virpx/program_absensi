@@ -55,7 +55,7 @@ def check_login_status():
             "login": tokenlogin,
             "data":"g"
         }
-        response = requests.post("http://localhost:3000/getlistanak", data=payload)
+        response = requests.get("http://localhost:3000/getlistanak", data=payload)
         data_siswa = json.loads(response.text)
     else:
         # Cek lagi dalam 5 detik
@@ -76,8 +76,6 @@ def is_logged_in():
         return len(chat_list) > 0
     except Exception as e:
         return False
-
-# Array berisi data siswa
 data_siswa = [
     {"nisn": "1234567890", "nama": "Ahmad Fauzi", "no_hp_ortu": "082140950288"},
     {"nisn": "9876543210", "nama": "Siti Nurhaliza", "no_hp_ortu": "082140950288"},
@@ -90,36 +88,47 @@ data_siswa = [
 
 def on_key_release(event):
     current_text = nik_entry.get()
-
+    print(data_siswa)
     if len(current_text) == 10:  # Cek jika panjang input 10 karakter
         siswa_ditemukan = next((siswa for siswa in data_siswa if siswa["nisn"] == current_text), None)
+        payload = {
+            "login": tokenlogin,
+            "data":nik_entry.get()
+        }
+        response = requests.post("http://localhost:3000/absen", data=payload)
+        datalogin = json.loads(response.text)
+        if datalogin['success'] == 0:
+            messagebox.showerror("Gagal Absen", datalogin["data"])
+        else:
+            if siswa_ditemukan:
+                nama = siswa_ditemukan["nama"]
+                no_hp = siswa_ditemukan["no_hp_ortu"]
 
-        if siswa_ditemukan:
-            nama = siswa_ditemukan["nama"]
-            no_hp = siswa_ditemukan["no_hp_ortu"]
-
-            try:
-                driver.get(f"https://web.whatsapp.com/send?phone=62{no_hp}&text=Selamat pagi Bapak/Ibu, kami ingin menyampaikan bahwa siswa {nama} telah hadir di sekolah.")
-
-                # Tunggu beberapa saat agar pengguna dapat login
-                time.sleep(15)
-
-                # Klik tombol kirim pada WhatsApp Web (dengan Xpath)
                 try:
-                    send_button = driver.find_element("css selector", 'button[aria-label="Kirim"]')
+                    driver.get(f"https://web.whatsapp.com/send?phone=62{no_hp}&text=Selamat pagi Bapak/Ibu, kami ingin menyampaikan bahwa siswa {nama} telah hadir di sekolah.")
+
+                    # Tunggu beberapa saat agar pengguna dapat login
+                    time.sleep(15)
+
+                    # Klik tombol kirim pada WhatsApp Web (dengan Xpath)
+                    while True:
+                        try:
+                            send_button = driver.find_element("css selector", 'button[aria-label="Kirim"]')
+                            break
+                        except Exception as e:
+                            try:
+                                send_button = driver.find_element("css selector", 'button[aria-label="Send"]')
+                                break
+                            except Exception as e:
+                                pass
                     send_button.click()
                     nama = ""
                     no_hp = ""
                 except Exception as e:
-                    messagebox.showerror("Error", f"Gagal menekan tombol kirim: {str(e)}")
-                
-            except Exception as e:
-                messagebox.showerror("Error", f"Gagal membuka WhatsApp Web: {str(e)}")
-        else:
-            messagebox.showwarning("NISN Tidak Ditemukan", "NISN tidak ditemukan!")
-        
+                    messagebox.showerror("Error", f"Gagal membuka WhatsApp Web: {str(e)}")
+            else:
+                messagebox.showwarning("NISN Tidak Ditemukan", "NISN tidak ditemukan!")
         nik_entry.delete(0, tk.END)
-
 def sanitize_phone_number(phone):
     phone = re.sub(r'\D', '', phone)
     if phone.startswith('+62'):
@@ -129,29 +138,17 @@ def sanitize_phone_number(phone):
     elif phone.startswith('0'):
         phone = phone[1:]  
     return str(phone)
-
-
-
-# Fungsi untuk membuat tombol melingkar
 def create_rounded_button(canvas, x, y, width, height, radius, text, command=None):
-    # Gambar bentuk bulat di sekitar tombol
     canvas.create_oval(x, y, x + radius*2, y + radius*2, fill="purple", outline="")
     canvas.create_oval(x + width - radius*2, y, x + width, y + radius*2, fill="purple", outline="")
     canvas.create_oval(x, y + height - radius*2, x + radius*2, y + height, fill="purple", outline="")
     canvas.create_oval(x + width - radius*2, y + height - radius*2, x + width, y + height, fill="purple", outline="")
-    
-    # Menggambar persegi panjang di antara lingkaran untuk menyelesaikan tampilan melingkar
     canvas.create_rectangle(x + radius, y, x + width - radius, y + height, fill="purple", outline="")
     canvas.create_rectangle(x, y + radius, x + width, y + height - radius, fill="purple", outline="")
-
-    # Menambahkan teks pada tombol
     button_text = canvas.create_text(x + width / 2, y + height / 2, text=text, fill="white", font=("Arial", 12, "bold"))
-
-    # Menambahkan event klik pada tombol
     if command:
         canvas.tag_bind(button_text, "<Button-1>", lambda event: command())
         canvas.tag_bind("button_background", "<Button-1>", lambda event: command())
-
 # Fungsi untuk memuat gambar dari folder assets
 def load_image(path, width, height):
     image = Image.open(path)
@@ -282,6 +279,7 @@ create_rounded_button(
 
 # Fungsi untuk menampilkan QR Code dan cek login       
 def from_menu_to_qrcode():
+    requests.get("http://localhost:3000/generateabsen")
     show_frame(qr_frame)
     fetch_and_show_qr_code()
     check_login_status()
@@ -378,7 +376,7 @@ def fetch_and_show_qr_code():
     try:
         # Konfigurasi headless browser menggunakan Chrome
         chrome_options = Options()
-        chrome_options.add_argument("--headless")
+        # chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument('--disable-dev-shm-usage')
 

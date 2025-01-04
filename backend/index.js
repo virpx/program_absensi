@@ -65,6 +65,10 @@ async function generateabsen() {
         }
     }
 }
+app.get("/generateabsen",(req,res)=>{
+    generateabsen()
+    return res.status(200).send("success")
+})
 app.post("/login", [
     check('username')
         .notEmpty().withMessage('Username is required'),
@@ -397,7 +401,8 @@ app.post("/insertlistsiswa", [
                     kelas: iterator.kelas,
                 })
             }
-        } catch {
+        } catch(err) {
+            console.log(err.message)
             return res.status(400).send({
                 success: 0,
                 data: "Error menambahkan siswa"

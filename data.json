@@ -1,16 +1,9 @@
 [
     {
-        "nisn": 123,
-        "nama": "asep",
-        "no_ortu": 620895,
-        "no_walas": 8951,
-        "kelas": "7A"
-    },
-    {
-        "nisn": 1234,
+        "nisn": "0912345678",
         "nama": "budi",
-        "no_ortu": 620895,
-        "no_walas": 8951,
+        "no_ortu": 88803833708,
+        "no_walas": 488,
         "kelas": "7A"
     }
 ]

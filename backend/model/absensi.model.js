@@ -6,7 +6,7 @@ const Absensi = sequelize.define('Absensi', {
         primaryKey: true,
     },
     nisn: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.TEXT,
         allowNull: false,
     },
     nama: {
