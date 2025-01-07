@@ -196,9 +196,10 @@ app.post("/ubahabsen", [
     } else {
         datamuride.status = dataparse[1]
         if (dataparse[1] == 2) {
-            datamuride.keteragan = dataparse[2]
+            console.log("yow")
+            datamuride.keterangan = dataparse[2]
         } else {
-            datamuride.keteragan = null
+            datamuride.keterangan = null
         }
         await datamuride.save()
         return res.status(200).send({
@@ -618,7 +619,7 @@ app.get("/detailabsen", [
                     untuktanggal: iterator.untuktanggal,
                     timestampdatang: iterator.timestamp,
                     status: stringstatus,
-                    keterangan: iterator.keterangan == null ? "-" : iterator.keteragan
+                    keterangan: iterator.keterangan == null ? "-" : iterator.keterangan
                 }
             )
         }
@@ -691,7 +692,7 @@ app.get("/backupdatabase", [
         data: dataout
     })
 })
-app.get("/getlistanak",[
+app.get("/getdatanotifikasi",[
     check('login')
         .notEmpty().withMessage('Login is required'),
     check('data')
@@ -713,16 +714,28 @@ app.get("/getlistanak",[
             data: "Invalid Token"
         })
     }
-    var dataanak = await ListSiswa.findAll()
-    var listsend = []
-    for (const iterator of dataanak) {
-        listsend.push({
-            nisn:iterator.nisn,
-            nama:iterator.nama,
-            no_hp_ortu:iterator.no_ortu
+    var dataabsenhariini = await Absensi.findAll(
+        {
+            where: {
+                untuktanggal: gettanggal(1)
+            }
+        }
+    );
+    var datasend = []
+    for (const iterator of dataabsenhariini) {
+        var dataanak_e = await ListSiswa.findOne({
+            where:{
+                nisn:iterator.nisn
+            }
+        })
+        datasend.push({
+            nama:dataanak_e.nama,
+            no_ortu:dataanak_e.no_ortu,
+            status:iterator.status,
+            keterangan:iterator.keterangan
         })
     }
-    return res.status(200).send(listsend)
+    return res.status(200).send(datasend)
 })
 app.get("/")
 sequelize.authenticate().then(() => {
