@@ -344,7 +344,7 @@ app.post("/insertlistsiswa", [
         if (getlast.tahun == gettanggal(3)) {
             return res.status(400).send({
                 success: 0,
-                data: "Belum saatnya melakukan insert data siswa"
+                data: "err_belum_saatnya"
             })
         } else if (getlast.tahun < gettanggal(3)) {
             return res.status(400).send({
@@ -352,6 +352,8 @@ app.post("/insertlistsiswa", [
                 data: "err_tahunajar"
             })
         }
+    } else if(data2[0] == "goinsertsiswaforce"){
+        var databaru = []
         try {
             await ListSiswa.truncate()
             listsiswa = JSON.parse(atob(data2[1]))
@@ -364,8 +366,16 @@ app.post("/insertlistsiswa", [
                     no_walas: iterator.no_walas,
                     kelas: iterator.kelas,
                 })
+                databaru.push(iterator.nisn)
             }
         } catch {
+            for (const iterator of databaru) {
+                await ListSiswa.destroy({
+                    where:{
+                        nisn:iterator
+                    }
+                })
+            }
             return res.status(400).send({
                 success: 0,
                 data: "Error menambahkan siswa"
@@ -375,7 +385,7 @@ app.post("/insertlistsiswa", [
             success: 1,
             data: "Berhasil menambahkan siswa"
         })
-    } else if (data2[0] == "tambahtahunajar") {
+    }else if (data2[0] == "tambahtahunajar") {
         var getlast = await TahunAjar.findOne({
             order: [['tahun', 'DESC']]
         })
@@ -389,6 +399,7 @@ app.post("/insertlistsiswa", [
         await TahunAjar.create({
             tahun: currentYear
         })
+        var databaru = []
         try {
             await ListSiswa.truncate()
             listsiswa = JSON.parse(atob(data2[1]))
@@ -401,9 +412,21 @@ app.post("/insertlistsiswa", [
                     no_walas: iterator.no_walas,
                     kelas: iterator.kelas,
                 })
+                databaru.push(iterator.nisn)
             }
         } catch(err) {
-            console.log(err.message)
+            for (const iterator of databaru) {
+                await ListSiswa.destroy({
+                    where:{
+                        nisn:iterator
+                    }
+                })
+            }
+            await TahunAjar.destroy({
+                where:{
+                    tahun:currentYear
+                }
+            })
             return res.status(400).send({
                 success: 0,
                 data: "Error menambahkan siswa"

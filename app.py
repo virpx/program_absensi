@@ -48,7 +48,7 @@ def show_frame(frame,tambahan=""):
     frame.pack(fill="both", expand=True)
 
 list_entry_add_siswa = []
-tokenlogin = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzYzMDk5MzMsImRhdGEiOiJhZG1pbmxvZ2luIiwiaWF0IjoxNzM2MjIzNTMzfQ.FBZJQFbaCjpKGlA2yLJqpb7rFWqYRDq_Ktqz3VJKNxo"
+tokenlogin = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzY2NDcyNDAsImRhdGEiOiJhZG1pbmxvZ2luIiwiaWF0IjoxNzM2NTYwODQwfQ.nUn4QFwha9pt9VScgHY2ekqVc_BK8hsCUOG2q_1_o58"
 # Fungsi untuk mengecek login setiap beberapa detik
 def check_login_status():
     if is_logged_in():
@@ -77,13 +77,13 @@ def is_logged_in():
 def kirim_notifikasi_presensi(no_hp,nama,status,keterangan):
     if status == 0:
         #alpha
-        pesankirim = ""
+        pesankirim = "Selamat pagi Bapak/Ibu, kami ingin menyampaikan bahwa siswa "+nama+" tidak hadir di sekolah."
     elif status == 1:
         #masuk
-        pesankirim = ""
+        pesankirim = "Selamat pagi Bapak/Ibu, kami ingin menyampaikan bahwa siswa "+nama+" telah hadir di sekolah."
     else:
         #izin
-        pesankirim = ""
+        pesankirim = "Selamat pagi Bapak/Ibu, kami ingin menyampaikan bahwa siswa "+nama+" izin hadir di sekolah dengan alasan "+keterangan+"."
     try:
         driver.get(f"https://web.whatsapp.com/send?phone=62{no_hp}&text={pesankirim}")
 
@@ -138,17 +138,6 @@ root.title("WhatsApp Web QR Code Fetcher")
 
 # Ukuran window
 root.geometry("1000x1000")
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Send Notification # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-def getabsenhariini():
-    global tokenlogin
-    payload = {
-        "login": tokenlogin,
-        "data":"g"
-    }
-    response = requests.get("http://localhost:3000/getdatanotifikasi", data=payload)
-    dataabsenhariini = json.loads(response.text)
-    print(dataabsenhariini)
-getabsenhariini()
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Login # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
@@ -428,6 +417,16 @@ back_button.pack(pady=20)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Absensi # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+def getabsenhariinikirim():
+    global tokenlogin
+    payload = {
+        "login": tokenlogin,
+        "data":"g"
+    }
+    response = requests.get("http://localhost:3000/getdatanotifikasi", data=payload)
+    dataabsenhariini = json.loads(response.text)
+    for a in dataabsenhariini:
+        kirim_notifikasi_presensi(a["no_ortu"],a["nama"],a["status"],a["keterangan"])
 
 def on_key_release(e):
     global tokenlogin
@@ -502,6 +501,11 @@ back_canvas.place(relx=0.5, rely=0.6, anchor="center")  # Posisi di tengah secar
 
 # Membuat tombol "Back" melingkar
 create_rounded_button(back_canvas, x=5, y=5, width=90, height=40, radius=20, text="Back", command=lambda: show_frame(menu_frame))
+wa_canvas = tk.Canvas(section_kanan, width=140, height=50, bg="white", highlightthickness=0)
+wa_canvas.place(relx=0.5, rely=0.75, anchor="center")  # Posisi di tengah, sedikit lebih bawah dari tombol "Back"
+
+# Membuat tombol "KIRIM WA" melingkar
+create_rounded_button(wa_canvas, x=5, y=5, width=130, height=40, radius=20, text="KIRIM WA", command=lambda: getabsenhariinikirim())
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Database # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -678,8 +682,21 @@ def savedata():
                         show_frame(databases_frame)
                     else:
                         messagebox.showwarning("Error", response["data"])
-            else:
-                messagebox.showwarning("Error", response["data"])
+            elif response["data"] == "err_belum_saatnya":
+                tanyabuat = messagebox.askyesno("Konfirmasi", "Belum saatnya melakukan insert data siswa, ingin tetap lanjutkan?")
+                if tanyabuat:
+                    payload = {
+                        "login": tokenlogin,
+                        "data":"goinsertsiswaforce#"+base64save
+                    }
+                    response = requests.post("http://localhost:3000/insertlistsiswa", data=payload)
+                    response = json.loads(response.text)
+                    if response["success"] == 1:
+                        messagebox.showinfo("Success", "Berhasil Menambahkan Data")
+                        tree.delete(*tree.get_children())
+                        show_frame(databases_frame)
+                    else:
+                        messagebox.showwarning("Error", response["data"])
     else:
         messagebox.showwarning("Error", response["data"])
 
@@ -968,8 +985,9 @@ search_label.pack(side="left", padx=(0, 10))
 
 search_entry = tk.Entry(search_frame)
 search_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
-
-search_button = ttk.Button(search_frame, text="Search", command=search_siswa, style="Purple.TButton")
+stylee = ttk.Style()
+stylee.configure("Cari.TButton", foreground="black")
+search_button = ttk.Button(search_frame, text="Search", command=search_siswa, style="Cari.TButton")
 search_button.pack(side="left")
 
 # Frame untuk menampilkan hasil
@@ -1307,7 +1325,7 @@ if __name__ == "__main__":
 
     # Step 2: Check and start backend server if necessary
     check_and_start_backend()
-    # show_frame(login_frame) 
+    show_frame(login_frame) 
 
     # # Jalankan aplikasi
     root.mainloop()
