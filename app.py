@@ -74,16 +74,16 @@ def is_logged_in():
         return False
 # Cek qrcode absen
 
-def kirim_notifikasi_presensi(no_hp,nama,status,keterangan):
+def kirim_notifikasi_presensi(no_hp,nama,status,keterangan,waktuhadir):
     if status == 0:
         #alpha
-        pesankirim = "Selamat pagi Bapak/Ibu, kami ingin menyampaikan bahwa siswa "+nama+" tidak hadir di sekolah."
+        pesankirim = "Selamat pagi%0AYth. Bpk/Ibu wali murid%0AKami dari admin SMPN 3 Waru, memberitahukan bahwa ananda "+nama+" pukul 07.00 belum hadir di sekolah%0ATerimakasih atas kerjasamanya dan perhatiannya"
     elif status == 1:
         #masuk
-        pesankirim = "Selamat pagi Bapak/Ibu, kami ingin menyampaikan bahwa siswa "+nama+" telah hadir di sekolah."
+        pesankirim = "Selamat Pagi%0AYth. Bpk/Ibu wali murid%0AKami dari admin SMPN 3 Waru, memberitahukan bahwa ananda "+nama+" telah hadir di sekolah pukul "+waktuhadir+"%0ATerimakasih atas kerjasama dan perhatiannya"
     else:
         #izin
-        pesankirim = "Selamat pagi Bapak/Ibu, kami ingin menyampaikan bahwa siswa "+nama+" izin hadir di sekolah dengan alasan "+keterangan+"."
+        pesankirim = "Selamat pagi%0AYth. Bpk/Ibu wali murid%0AKami dari admin SMPN 3 Waru, memberitahukan bahwa ananda "+nama+" izin hadir di sekolah dengan keterangan "+keterangan+"%0ATerimakasih atas kerjasamanya dan perhatiannya"
     try:
         driver.get(f"https://web.whatsapp.com/send?phone=62{no_hp}&text={pesankirim}")
 
@@ -426,7 +426,7 @@ def getabsenhariinikirim():
     response = requests.get("http://localhost:3000/getdatanotifikasi", data=payload)
     dataabsenhariini = json.loads(response.text)
     for a in dataabsenhariini:
-        kirim_notifikasi_presensi(a["no_ortu"],a["nama"],a["status"],a["keterangan"])
+        kirim_notifikasi_presensi(a["no_ortu"],a["nama"],a["status"],a["keterangan"],a["waktuhadir"])
 
 def on_key_release(e):
     global tokenlogin
@@ -620,7 +620,7 @@ def loadexcel():
         tree["columns"] = []
 
         # Load the header and rows
-        headers = [cell.value for cell in sheet[1]]
+        headers = [cell.value for cell in sheet[1] if cell.value is not None]
         tree["columns"] = headers
         for header in headers:
             tree.heading(header, text=header)
@@ -628,22 +628,27 @@ def loadexcel():
 
         data = []
         for row in sheet.iter_rows(min_row=2, values_only=True):
-            tree.insert("", "end", values=row)
-            data.append(dict(zip(headers, row)))
+            # Skip rows where all values are None
+            if not all(value is None for value in row):
+                filtered_row = [value if value is not None else "" for value in row]
+                filtered_row_dict = dict(zip(headers, filtered_row))
+                tree.insert("", "end", values=filtered_row[:len(headers)])
+                data.append(filtered_row_dict)
 
         # Save data to a JSON file
         json_file_path = "data.json"
         with open(json_file_path, "w", encoding="utf-8") as json_file:
             json.dump(data, json_file, indent=4)
-        
+
         # Encode JSON file content to Base64
         with open(json_file_path, "rb") as json_file:
             encoded_data = base64.b64encode(json_file.read()).decode("utf-8")
-        
+
         # Print encoded data to the terminal
         print("Base64 Encoded Data:")
         print(encoded_data)
         base64save = encoded_data
+
     except Exception as e:
         messagebox.showerror("Error", f"Failed to load file: {e}")
 def savedata():

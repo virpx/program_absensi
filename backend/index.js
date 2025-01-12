@@ -715,6 +715,15 @@ app.get("/backupdatabase", [
         data: dataout
     })
 })
+function getTimeOnly(dateTimeString) {
+    // Parse the date-time string into a Date object
+    const date = new Date(dateTimeString);
+
+    // Extract the time portion in HH:MM:SS format
+    const timeOnly = date.toTimeString().split(' ')[0];
+    
+    return timeOnly;
+}
 app.get("/getdatanotifikasi",[
     check('login')
         .notEmpty().withMessage('Login is required'),
@@ -755,8 +764,9 @@ app.get("/getdatanotifikasi",[
             nama:dataanak_e.nama,
             no_ortu:dataanak_e.no_ortu,
             status:iterator.status,
+            waktuhadir: getTimeOnly(iterator.timestamp),
             keterangan:iterator.keterangan
-        })
+        });
     }
     return res.status(200).send(datasend)
 })
