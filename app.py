@@ -86,22 +86,40 @@ def kirim_notifikasi_presensi(no_hp,nama,status,keterangan,waktuhadir):
         pesankirim = "Selamat pagi%0AYth. Bpk/Ibu wali murid%0AKami dari admin SMPN 3 Waru, memberitahukan bahwa ananda "+nama+" izin hadir di sekolah dengan keterangan "+keterangan+"%0ATerimakasih atas kerjasamanya dan perhatiannya"
     try:
         driver.get(f"https://web.whatsapp.com/send?phone=62{no_hp}&text={pesankirim}")
-
-        # Tunggu beberapa saat agar pengguna dapat login
-        time.sleep(15)
-
+        driver.execute_script("""
+if(document.getElementById("bukachatbaru")){
+  document.getElementById("bukachatbaru").setAttribute('href',"https://web.whatsapp.com/send?phone=+62895411281210&text=pepek ini coba")
+}else{
+  linkchat = document.createElement("a")
+  linkchat.setAttribute('href',"https://web.whatsapp.com/send?phone=+62895411281210&text=pepek ini coba")
+  linkchat.setAttribute("id","bukachatbaru")
+  document.getElementsByTagName("h1")[0].append(linkchat)
+}
+document.getElementById("bukachatbaru").click()
+        """)
         # Klik tombol kirim pada WhatsApp Web (dengan Xpath)
         while True:
-            try:
-                send_button = driver.find_element("css selector", 'button[aria-label="Kirim"]')
-                break
-            except Exception as e:
+            adaerror = False
+            for a in driver.find_elements(By.TAG_NAME,"div"):
                 try:
-                    send_button = driver.find_element("css selector", 'button[aria-label="Send"]')
+                    if a.get_attribute("role") == "dialog":
+                        adaerror = True
+                        break
+                except:
+                    pass
+            if adaerror :
+                break
+            else:
+                try:
+                    send_button = driver.find_element("css selector", 'button[aria-label="Kirim"]')
                     break
                 except Exception as e:
-                    pass
-        send_button.click()
+                    try:
+                        send_button = driver.find_element("css selector", 'button[aria-label="Send"]')
+                        break
+                    except Exception as e:
+                        pass
+                send_button.click()
         return True
     except Exception as e:
         messagebox.showerror("Error", f"Gagal membuka WhatsApp Web: {str(e)}")
