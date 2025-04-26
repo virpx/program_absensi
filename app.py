@@ -85,13 +85,14 @@ def kirim_notifikasi_presensi(no_hp,nama,status,keterangan,waktuhadir):
         #izin
         pesankirim = "Selamat pagi%0AYth. Bpk/Ibu wali murid%0AKami dari admin SMPN 3 Waru, memberitahukan bahwa ananda "+nama+" izin hadir di sekolah dengan keterangan "+keterangan+"%0ATerimakasih atas kerjasamanya dan perhatiannya"
     try:
-        driver.get(f"https://web.whatsapp.com/send?phone=62{no_hp}&text={pesankirim}")
+        print(no_hp+"-"+pesankirim)
+        # driver.get(f"https://web.whatsapp.com/send?phone=62{no_hp}&text={pesankirim}")
         driver.execute_script("""
 if(document.getElementById("bukachatbaru")){
-  document.getElementById("bukachatbaru").setAttribute('href',"https://web.whatsapp.com/send?phone=+62895411281210&text=pepek ini coba")
+  document.getElementById("bukachatbaru").setAttribute('href',"https://web.whatsapp.com/send?phone=62"""+str(no_hp)+"""&text="""+str(pesankirim)+"""")
 }else{
   linkchat = document.createElement("a")
-  linkchat.setAttribute('href',"https://web.whatsapp.com/send?phone=+62895411281210&text=pepek ini coba")
+  linkchat.setAttribute('href',"https://web.whatsapp.com/send?phone=62"""+str(no_hp)+"""&text="""+str(pesankirim)+"""")
   linkchat.setAttribute("id","bukachatbaru")
   document.getElementsByTagName("h1")[0].append(linkchat)
 }
@@ -111,15 +112,14 @@ document.getElementById("bukachatbaru").click()
                 break
             else:
                 try:
-                    send_button = driver.find_element("css selector", 'button[aria-label="Kirim"]')
+                    send_button = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Kirim"]').click()
                     break
                 except Exception as e:
                     try:
-                        send_button = driver.find_element("css selector", 'button[aria-label="Send"]')
+                        send_button = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Send"]').click()
                         break
                     except Exception as e:
                         pass
-                send_button.click()
         return True
     except Exception as e:
         messagebox.showerror("Error", f"Gagal membuka WhatsApp Web: {str(e)}")
@@ -370,7 +370,7 @@ def fetch_and_show_qr_code():
     try:
         # Konfigurasi headless browser menggunakan Chrome
         chrome_options = Options()
-        chrome_options.add_argument("--headless")
+        # chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument('--disable-dev-shm-usage')
 

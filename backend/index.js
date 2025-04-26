@@ -12,6 +12,7 @@ const TahunAjar = require('./model/tahunajar.model');
 const { hash } = require('crypto');
 const { Op } = require('sequelize');
 const { QueryTypes } = require('sequelize');
+const PesanWA = require('./model/pesanwa.model');
 /*
 - STATUS ABSEN:
 0 = ALPHA
@@ -313,6 +314,70 @@ app.post("/backupkelas9", [
             data: "Invalid Data"
         })
     }
+})
+app.get("/getpesanwa",[
+    check('login')
+        .notEmpty().withMessage('Login is required'),
+],async(req,res)=>{
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
+    }
+    const { login } = req.body
+    try {
+        jwt.verify(login, "sistemabsensi");
+    } catch (error) {
+        return res.status(400).send({
+            success: 0,
+            data: "Invalid Token"
+        })
+    }
+    var ambilpesan = await PesanWA.findAll()
+    return res.status(200).send({
+        success: 1,
+        data: ambilpesan
+    })
+})
+app.post("/simpanpesanwa",[
+    check('login')
+        .notEmpty().withMessage('Login is required'),
+    check('data')
+        .notEmpty().withMessage('Data is required'),
+],async(req,res)=>{
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).send({
+            success: 0,
+            data: "Error Input"
+        })
+    }
+    const { login,data } = req.body
+    try {
+        jwt.verify(login, "sistemabsensi");
+    } catch (error) {
+        return res.status(400).send({
+            success: 0,
+            data: "Invalid Token"
+        })
+    }
+    datasimpan = JSON.parse(atob(data))
+    for (const iterator of datasimpan) {
+        var ambildatae = await PesanWA.findOne(
+            {
+                where: {
+                    id:iterator.id
+                }
+            }
+        )
+        ambildatae.isi = iterator.isi
+        ambildatae.save()
+    }
+    return res.status(200).send({
+        success: 1
+    })
 })
 app.post("/insertlistsiswa", [
     check('login')

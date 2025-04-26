@@ -1,23 +1,9 @@
 [
     {
-        "nisn": "0912345678",
+        "nisn": "0123456789",
         "nama": "Robah",
         "no_ortu": 88803833708,
         "no_walas": 488,
         "kelas": "7A"
-    },
-    {
-        "nisn": "0912345679",
-        "nama": "Hanvy",
-        "no_ortu": 81217771105,
-        "no_walas": 488,
-        "kelas": "7A"
-    },
-    {
-        "nisn": null,
-        "nama": null,
-        "no_ortu": null,
-        "no_walas": null,
-        "kelas": null
     }
 ]
