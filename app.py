@@ -356,6 +356,11 @@ absensi = tk.Canvas(kanan_frame, width=110, height=50, bg="white", highlightthic
 absensi.place(relx=0.50, rely=0.85, anchor="center") 
 create_rounded_button(absensi, x=5, y=5, width=100, height=40, radius=20, text="Absensi Siswa", command=from_menu_to_qrcode)
 
+# Tombol Ubah Pesan di pojok kiri bawah pada bawah_frame
+ubah_pesan_canvas = tk.Canvas(bawah_frame, width=120, height=50, bg="white", highlightthickness=0)
+ubah_pesan_canvas.place(relx=0.15, rely=0.25, anchor="center")  # Kiri bawah, relx lebih kecil dari Exit
+create_rounded_button(ubah_pesan_canvas, x=5, y=5, width=110, height=40, radius=20, text="Ubah Pesan", command=lambda: show_frame(ubahpesan_frame))
+
 # Tombol Exit di pojok kanan bawah pada bawah_frame
 exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlightthickness=0)
 exited_canvas.place(relx=0.85, rely=0.25, anchor="center") 
@@ -458,6 +463,7 @@ def on_key_release(e):
         if datalogin['success'] == 0:
             messagebox.showerror("Gagal Absen", datalogin["data"])
         nik_entry.delete(0,tk.END)
+
 absen_frame = tk.Frame(root,bg="white")
 
 # Membuat dua section di dalam frame absensi
@@ -531,6 +537,148 @@ create_rounded_button(wa_canvas, x=5, y=5, width=130, height=40, radius=20, text
 # Palet warna utama
 primary_color = "#6A1B9A"  # Ungu untuk aksen utama
 background_color = "white"
+
+# Frame ubah pesan
+ubahpesan_frame = tk.Frame(root, bg="white")
+
+# Style tabel
+sty = ttk.Style()
+sty.theme_use("default")
+sty.configure("Treeview",
+                background="#6A1B9A",
+                foreground="black",
+                rowheight=40,
+                fieldbackground="white",
+                font=('Arial', 12))
+sty.configure("Treeview.Heading",
+                font=('Arial', 14, 'bold'),
+                background="#6A1B9A",
+                foreground="white")
+sty.map('Treeview', background=[('selected', '#9575CD')])
+
+# Text Field Pesan
+pesan_var = tk.StringVar()
+top_frame = tk.Frame(ubahpesan_frame, bg="white")
+top_frame.pack(pady=20)
+
+pesan_entry = tk.Entry(top_frame, textvariable=pesan_var, font=("Arial", 14), width=50, relief="solid", bd=2)
+pesan_entry.pack(side="left", padx=(0,10))
+
+def save_pesan():
+    pesan = pesan_var.get().strip()
+    if not pesan:
+        messagebox.showwarning("Peringatan", "Pesan tidak boleh kosong!")
+        return
+    insert_row(pesan)
+    pesan_var.set("")
+
+save_button = tk.Button(top_frame, text="Save", command=save_pesan,
+                        bg="#6A1B9A", fg="white", font=("Arial", 12, "bold"),
+                        relief="raised", bd=3, padx=15, pady=5)
+save_button.pack(side="left")
+
+# Tombol Tambah Nama, Waktu, Tanggal
+button_frame = tk.Frame(ubahpesan_frame, bg="white")
+button_frame.pack(pady=(0,20))
+
+def tambah_tag(tag):
+    current_text = pesan_var.get()
+    pesan_var.set(current_text + f" {{{{{tag}}}}}")
+
+for idx, (label, tag) in enumerate([("Nama", "nama"), ("Waktu", "waktu"), ("Tanggal", "tanggal")]):
+    btn = tk.Button(button_frame, text=label, command=lambda t=tag: tambah_tag(t),
+                    bg="#6A1B9A", fg="white", font=("Arial", 10, "bold"),
+                    relief="raised", bd=2, padx=10, pady=5)
+    btn.grid(row=0, column=idx, padx=10)
+
+# Frame tabel + scrollbar
+table_frame = tk.Frame(ubahpesan_frame, bg="white")
+table_frame.pack(pady=10)
+
+columns = ("Pesan", "Aksi")
+pesan_table = ttk.Treeview(table_frame, columns=columns, show="headings", height=8)
+pesan_table.heading("Pesan", text="Pesan")
+pesan_table.heading("Aksi", text="Aksi")
+pesan_table.column("Pesan", width=600, anchor="w")
+pesan_table.column("Aksi", width=200, anchor="center")
+pesan_table.pack(side="left")
+
+# Scrollbar
+scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=pesan_table.yview)
+pesan_table.configure(yscrollcommand=scrollbar.set)
+scrollbar.pack(side="right", fill="y")
+
+# Tempat simpan frame button per-row
+action_widgets = {}
+
+# Fungsi Insert Row dengan Button Update & Delete
+def insert_row(pesan):
+    item_id = pesan_table.insert("", "end", values=(pesan, ""))
+    create_action_buttons(item_id)
+
+# Fungsi Buat Tombol Update & Delete di Kolom Aksi
+def create_action_buttons(item_id):
+    frame = tk.Frame(pesan_table, bg="white")
+    
+    btn_update = tk.Button(frame, text="Update", command=lambda: update_pesan(item_id),
+                           bg="#6A1B9A", fg="white", font=("Arial", 9, "bold"), padx=5)
+    btn_update.pack(side="left", padx=5)
+
+    btn_delete = tk.Button(frame, text="Delete", command=lambda: delete_pesan(item_id),
+                           bg="#6A1B9A", fg="white", font=("Arial", 9, "bold"), padx=5)
+    btn_delete.pack(side="left", padx=5)
+
+    action_widgets[item_id] = frame
+    pesan_table.set(item_id, column="Aksi", value="")
+
+    pesan_table.update_idletasks()
+    bbox = pesan_table.bbox(item_id, column="Aksi")
+    if bbox:
+        frame.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
+
+# Update posisi tombol Update & Delete kalau scroll
+def update_action_widgets(event):
+    for item_id, frame in action_widgets.items():
+        bbox = pesan_table.bbox(item_id, column="Aksi")
+        if bbox:
+            frame.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
+
+pesan_table.bind("<Configure>", update_action_widgets)
+pesan_table.bind("<Motion>", update_action_widgets)
+
+# Fungsi Update Pesan
+def update_pesan(item_id):
+    new_pesan = pesan_var.get().strip()
+    if not new_pesan:
+        messagebox.showwarning("Peringatan", "Pesan tidak boleh kosong!")
+        return
+    pesan_table.item(item_id, values=(new_pesan, ""))
+    update_action_widgets(None)
+    pesan_var.set("")
+
+# Fungsi Delete Pesan
+def delete_pesan(item_id):
+    if messagebox.askyesno("Konfirmasi", "Apakah Anda yakin ingin menghapus pesan ini?"):
+        pesan_table.delete(item_id)
+        frame = action_widgets.pop(item_id, None)
+        if frame:
+            frame.destroy()
+
+def exit_button_pressed():
+    # Menyembunyikan ubahpesan_frame
+    ubahpesan_frame.pack_forget()
+    
+    # Menampilkan menu_frame
+    show_frame(menu_frame)
+
+# Section Bawah
+bawah_frame = tk.Frame(ubahpesan_frame, bg=background_color, height=80)
+bawah_frame.pack(side="bottom", fill="x", padx=20, pady=10)
+
+# Tombol Exit di pojok kanan bawah pada bawah_frame
+exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlightthickness=0)
+exited_canvas.place(relx=0.85, rely=0.25, anchor="center") 
+create_rounded_button(exited_canvas, x=5, y=5, width=90, height=40, radius=20, text="Exit",command=lambda: show_frame(menu_frame))
 
 # Frame utama database
 databases_frame = tk.Frame(root, bg="white")
