@@ -164,6 +164,18 @@ app.post("/ubahabsen", [
     check('data')
         .notEmpty().withMessage('Data is required'),
 ], async (req, res) => {
+    function formatDate(date) {
+        const pad = (n) => n.toString().padStart(2, '0');
+        
+        const year = date.getFullYear();
+        const month = pad(date.getMonth() + 1); // Months are zero-based
+        const day = pad(date.getDate());
+        const hours = pad(date.getHours());
+        const minutes = pad(date.getMinutes());
+        const seconds = pad(date.getSeconds());
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).send({
@@ -196,6 +208,10 @@ app.post("/ubahabsen", [
         })
     } else {
         datamuride.status = dataparse[1]
+        if(dataparse[1] == 1){
+            const now = new Date();
+            datamuride.timestamp = formatDate(now)
+        }
         if (dataparse[1] == 2) {
             console.log("yow")
             datamuride.keterangan = dataparse[2]

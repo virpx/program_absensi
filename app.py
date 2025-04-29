@@ -73,17 +73,9 @@ def is_logged_in():
     except Exception as e:
         return False
 # Cek qrcode absen
-
+arrpesankirim = ["","",""]
 def kirim_notifikasi_presensi(no_hp,nama,status,keterangan,waktuhadir):
-    if status == 0:
-        #alpha
-        pesankirim = "Selamat pagi%0AYth. Bpk/Ibu wali murid%0AKami dari admin SMPN 3 Waru, memberitahukan bahwa ananda "+nama+" pukul 07.00 belum hadir di sekolah%0ATerimakasih atas kerjasamanya dan perhatiannya"
-    elif status == 1:
-        #masuk
-        pesankirim = "Selamat Pagi%0AYth. Bpk/Ibu wali murid%0AKami dari admin SMPN 3 Waru, memberitahukan bahwa ananda "+nama+" telah hadir di sekolah pukul "+waktuhadir+"%0ATerimakasih atas kerjasama dan perhatiannya"
-    else:
-        #izin
-        pesankirim = "Selamat pagi%0AYth. Bpk/Ibu wali murid%0AKami dari admin SMPN 3 Waru, memberitahukan bahwa ananda "+nama+" izin hadir di sekolah dengan keterangan "+keterangan+"%0ATerimakasih atas kerjasamanya dan perhatiannya"
+    pesankirim = arrpesankirim[status].replace("{{nama}}","" if nama == None else nama).replace("{{tanggal}}","" if waktuhadir == None else waktuhadir).replace("{{keteranganizin}}","" if keterangan == None else keterangan)
     try:
         print(no_hp+"-"+pesankirim)
         # driver.get(f"https://web.whatsapp.com/send?phone=62{no_hp}&text={pesankirim}")
@@ -100,26 +92,37 @@ document.getElementById("bukachatbaru").click()
         """)
         # Klik tombol kirim pada WhatsApp Web (dengan Xpath)
         while True:
-            adaerror = False
-            for a in driver.find_elements(By.TAG_NAME,"div"):
-                try:
-                    if a.get_attribute("role") == "dialog":
-                        adaerror = True
-                        break
-                except:
-                    pass
-            if adaerror :
+            try:
+                send_button = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Kirim"]').click()
                 break
-            else:
+            except Exception as e:
                 try:
-                    send_button = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Kirim"]').click()
+                    send_button = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Send"]').click()
                     break
                 except Exception as e:
-                    try:
-                        send_button = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Send"]').click()
-                        break
-                    except Exception as e:
-                        pass
+                    pass
+                    adaerror = False
+                    if "Phone number shared via url is invalid." in driver.find_element(By.TAG_NAME,"html").text:
+                        print(driver.find_element(By.TAG_NAME,"html").text)
+                        adaerror = True
+                    if adaerror :
+                        jalane = True
+                        while jalane:
+                            try:
+                                send_button = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Kirim"]').click()
+                                return True
+                            except Exception as e:
+                                try:
+                                    send_button = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Send"]').click()
+                                    return True
+                                except Exception as e:
+                                    for a in driver.find_elements(By.TAG_NAME,"button"):
+                                        try:
+                                            if "OK" in a.text:
+                                                a.click()
+                                                return False
+                                        except:
+                                            pass
         return True
     except Exception as e:
         messagebox.showerror("Error", f"Gagal membuka WhatsApp Web: {str(e)}")
@@ -359,7 +362,7 @@ create_rounded_button(absensi, x=5, y=5, width=100, height=40, radius=20, text="
 # Tombol Ubah Pesan di pojok kiri bawah pada bawah_frame
 ubah_pesan_canvas = tk.Canvas(bawah_frame, width=120, height=50, bg="white", highlightthickness=0)
 ubah_pesan_canvas.place(relx=0.15, rely=0.25, anchor="center")  # Kiri bawah, relx lebih kecil dari Exit
-create_rounded_button(ubah_pesan_canvas, x=5, y=5, width=110, height=40, radius=20, text="Ubah Pesan", command=lambda: show_frame(ubahpesan_frame))
+create_rounded_button(ubah_pesan_canvas, x=5, y=5, width=110, height=40, radius=20, text="Ubah Pesan", command=lambda: (show_frame(ubahpesan_frame),loadpesanwa()))
 
 # Tombol Exit di pojok kanan bawah pada bawah_frame
 exited_canvas = tk.Canvas(bawah_frame, width=100, height=50, bg="white", highlightthickness=0)
@@ -439,6 +442,26 @@ back_button.pack(pady=20)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Absensi # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+def normalize_phone_number(phone_number):
+    # Hilangkan semua karakter kecuali angka dan +
+    phone_number = re.sub(r'[^\d+]', '', phone_number)
+    
+    # Normalisasi awalan
+    if phone_number.startswith('+62'):
+        phone_number = phone_number[3:]
+    elif phone_number.startswith('62'):
+        phone_number = phone_number[2:]
+    elif phone_number.startswith('0'):
+        phone_number = phone_number[1:]
+    
+    return phone_number
+
+def is_valid_indonesian_number(phone_number):
+    normalized = normalize_phone_number(phone_number)
+    print(f"Normalized: {normalized}")  # DEBUG
+    # Validasi: mulai dari 8, total 9-12 digit
+    pattern = r'^8[1-9][0-9]{7,10}$'
+    return bool(re.fullmatch(pattern, normalized))
 
 def getabsenhariinikirim():
     global tokenlogin
@@ -448,8 +471,14 @@ def getabsenhariinikirim():
     }
     response = requests.get("http://localhost:3000/getdatanotifikasi", data=payload)
     dataabsenhariini = json.loads(response.text)
+    loadpesanwa()
+    for a in range(0,len(datapesanwa)):
+        arrpesankirim[a] = datapesanwa[a]["isi"]
     for a in dataabsenhariini:
-        kirim_notifikasi_presensi(a["no_ortu"],a["nama"],a["status"],a["keterangan"],a["waktuhadir"])
+        if is_valid_indonesian_number(str(a["no_ortu"])):
+            kirim_notifikasi_presensi(normalize_phone_number(a["no_ortu"]),a["nama"],a["status"],a["keterangan"],a["waktuhadir"])
+        else:
+            print("Invalid Number Phone")
 
 def on_key_release(e):
     global tokenlogin
@@ -555,7 +584,8 @@ sty.configure("Treeview.Heading",
                 background="#6A1B9A",
                 foreground="white")
 sty.map('Treeview', background=[('selected', '#9575CD')])
-
+datapesanwa = None
+indexeditpesanwa = -1;
 # Text Field Pesan
 pesan_var = tk.StringVar()
 top_frame = tk.Frame(ubahpesan_frame, bg="white")
@@ -569,9 +599,48 @@ def save_pesan():
     if not pesan:
         messagebox.showwarning("Peringatan", "Pesan tidak boleh kosong!")
         return
-    insert_row(pesan)
+    for a in range(0,len(datapesanwa)):
+        if datapesanwa[a]["status"] == indexeditpesanwa:
+            datapesanwa[a]["isi"] = pesan
+            break
     pesan_var.set("")
+    json_str = json.dumps(datapesanwa)
+    json_bytes = json_str.encode('utf-8')
 
+    # Step 3: Encode to Base64
+    base64_bytes = base64.b64encode(json_bytes)
+    base64_str = base64_bytes.decode('utf-8')
+    payload = {
+        "login": tokenlogin,
+        "data":base64_str
+    }
+    response = requests.post("http://localhost:3000/simpanpesanwa", data=payload)
+    if response.status_code == 200:
+        clear_tree()
+        loadpesanwa()
+        clear_tree()
+        loadpesanwa()
+    else:
+        print("Gagal menyimpan pesan. Status code:", response.status_code)
+def loadpesanwa():
+    global datapesanwa
+    payload = {
+        "login": tokenlogin,
+    }
+    hasilloadpesan = requests.get("http://localhost:3000/getpesanwa", data=payload)
+    datapesanwa = json.loads(hasilloadpesan.text)["data"]
+    for a in datapesanwa:
+        insert_row(a["isi"],"Bolos" if a["status"] == 0 else "Masuk" if a["status"] == 1 else "Izin")
+def clear_tree():
+    for item in pesan_table.get_children():
+        pesan_table.delete(item)
+def on_double_click(event):
+    global indexeditpesanwa
+    selected_item = pesan_table.selection()
+    if selected_item:
+        values = pesan_table.item(selected_item[0], "values")
+        indexeditpesanwa = 0 if values[1] == "Bolos" else 1 if values[1] == "Masuk" else 2
+        pesan_var.set(values[0])
 save_button = tk.Button(top_frame, text="Save", command=save_pesan,
                         bg="#6A1B9A", fg="white", font=("Arial", 12, "bold"),
                         relief="raised", bd=3, padx=15, pady=5)
@@ -585,7 +654,7 @@ def tambah_tag(tag):
     current_text = pesan_var.get()
     pesan_var.set(current_text + f" {{{{{tag}}}}}")
 
-for idx, (label, tag) in enumerate([("Nama", "nama"), ("Waktu", "waktu"), ("Tanggal", "tanggal")]):
+for idx, (label, tag) in enumerate([("Nama", "nama"), ("Keterangan Izin", "keteranganizin"), ("Tanggal", "tanggal")]):
     btn = tk.Button(button_frame, text=label, command=lambda t=tag: tambah_tag(t),
                     bg="#6A1B9A", fg="white", font=("Arial", 10, "bold"),
                     relief="raised", bd=2, padx=10, pady=5)
@@ -602,7 +671,7 @@ pesan_table.heading("Aksi", text="Aksi")
 pesan_table.column("Pesan", width=600, anchor="w")
 pesan_table.column("Aksi", width=200, anchor="center")
 pesan_table.pack(side="left")
-
+pesan_table.bind("<Double-1>", on_double_click)
 # Scrollbar
 scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=pesan_table.yview)
 pesan_table.configure(yscrollcommand=scrollbar.set)
@@ -612,57 +681,8 @@ scrollbar.pack(side="right", fill="y")
 action_widgets = {}
 
 # Fungsi Insert Row dengan Button Update & Delete
-def insert_row(pesan):
-    item_id = pesan_table.insert("", "end", values=(pesan, ""))
-    create_action_buttons(item_id)
-
-# Fungsi Buat Tombol Update & Delete di Kolom Aksi
-def create_action_buttons(item_id):
-    frame = tk.Frame(pesan_table, bg="white")
-    
-    btn_update = tk.Button(frame, text="Update", command=lambda: update_pesan(item_id),
-                           bg="#6A1B9A", fg="white", font=("Arial", 9, "bold"), padx=5)
-    btn_update.pack(side="left", padx=5)
-
-    btn_delete = tk.Button(frame, text="Delete", command=lambda: delete_pesan(item_id),
-                           bg="#6A1B9A", fg="white", font=("Arial", 9, "bold"), padx=5)
-    btn_delete.pack(side="left", padx=5)
-
-    action_widgets[item_id] = frame
-    pesan_table.set(item_id, column="Aksi", value="")
-
-    pesan_table.update_idletasks()
-    bbox = pesan_table.bbox(item_id, column="Aksi")
-    if bbox:
-        frame.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
-
-# Update posisi tombol Update & Delete kalau scroll
-def update_action_widgets(event):
-    for item_id, frame in action_widgets.items():
-        bbox = pesan_table.bbox(item_id, column="Aksi")
-        if bbox:
-            frame.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
-
-pesan_table.bind("<Configure>", update_action_widgets)
-pesan_table.bind("<Motion>", update_action_widgets)
-
-# Fungsi Update Pesan
-def update_pesan(item_id):
-    new_pesan = pesan_var.get().strip()
-    if not new_pesan:
-        messagebox.showwarning("Peringatan", "Pesan tidak boleh kosong!")
-        return
-    pesan_table.item(item_id, values=(new_pesan, ""))
-    update_action_widgets(None)
-    pesan_var.set("")
-
-# Fungsi Delete Pesan
-def delete_pesan(item_id):
-    if messagebox.askyesno("Konfirmasi", "Apakah Anda yakin ingin menghapus pesan ini?"):
-        pesan_table.delete(item_id)
-        frame = action_widgets.pop(item_id, None)
-        if frame:
-            frame.destroy()
+def insert_row(pesan,status):
+    item_id = pesan_table.insert("", "end", values=(pesan,status))
 
 def exit_button_pressed():
     # Menyembunyikan ubahpesan_frame
@@ -998,6 +1018,8 @@ def loaddataedit():
     print(response.text)
     datalogin = json.loads(response.text)
     siswa_data = datalogin
+    for widget in result_frame.winfo_children():
+            widget.destroy()
     for siswa in siswa_data:
         display_siswa(siswa)
 
@@ -1029,7 +1051,8 @@ def display_siswa(siswa):
     name_label = tk.Label(name_frame, text=siswa["nama"], bg="white", fg="black", 
                          font=("Helvetica", 11, "bold"), width=20, anchor="w")
     name_label.pack(side="left")
-
+    alasanizin = tk.StringVar()
+    alasanizin.set(siswa["keterangan"])
     # Frame untuk checkbox
     checkbox_frame = tk.Frame(siswa_frame, bg="white")
     checkbox_frame.pack(side="left", padx=10)
@@ -1089,7 +1112,7 @@ def display_siswa(siswa):
     keterangan_label = tk.Label(keterangan_frame, text="Keterangan:", bg="white", font=("Helvetica", 10))
     keterangan_label.pack(side="left")
     
-    keterangan_izin = tk.Entry(keterangan_frame, font=("Helvetica", 10), width=20)
+    keterangan_izin = tk.Entry(keterangan_frame, font=("Helvetica", 10), width=20, textvariable=alasanizin)
     keterangan_izin.pack(side="left", padx=(5,10))
 
     def save_attendance():
