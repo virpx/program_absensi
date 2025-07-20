@@ -1,4 +1,5 @@
 import time
+import socket
 import pyqrcode
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -1479,31 +1480,47 @@ def check_and_create_database(host, user, password, database_name, sql_file_path
     finally:
         if connection.is_connected():
             connection.close()
+def is_port_open(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.connect(("127.0.0.1", port))
+            return True
+        except ConnectionRefusedError:
+            return False
 
-
-def check_and_start_backend():
-    try:
-        # Check if the backend server is running (Windows version)
-        result = subprocess.run(
-            ["netstat", "-ano"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+def start_mysql_if_needed():
+    if not is_port_open(MYSQL_PORT):
+        print("MySQL belum berjalan. Menjalankan...")
+        subprocess.Popen(
+            [MYSQL_BIN_PATH, f"--defaults-file={MYSQL_CONFIG_PATH}"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
         )
-        
-        # Look for the port (e.g., 3000) in the output
-        port_in_use = False
-        for line in result.stdout.splitlines():
-            if "0.0.0.0:3000" in line or "127.0.0.1:3000" in line:
-                port_in_use = True
-                break
-
-        if port_in_use:
-            print("Backend server is already running.")
+        time.sleep(3)
+        if is_port_open(MYSQL_PORT):
+            print("MySQL berhasil dijalankan.")
         else:
-            print("Backend server is not running. Starting it...")
-            subprocess.Popen(["nodefile\\node.exe", "index.js"], cwd=str(Path(__file__).resolve().parent)+"\\backend", shell=True)
-            print("Backend server started.")
+            messagebox.showerror("Error", "Gagal menjalankan MySQL.")
+            exit(1)
+    else:
+        print("MySQL sudah berjalan.")
 
-    except Exception as e:
-        print(f"Error: {e}")
+def start_backend_if_needed():
+    if not is_port_open(BACKEND_PORT):
+        print("Backend belum berjalan. Menjalankan backend.exe...")
+        subprocess.Popen(
+            [BACKEND_EXE_PATH],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        time.sleep(2)
+        if is_port_open(BACKEND_PORT):
+            print("Backend berhasil dijalankan.")
+        else:
+            messagebox.showerror("Error", "Gagal menjalankan backend.")
+            exit(1)
+    else:
+        print("Backend sudah berjalan.")
 
 
 if __name__ == "__main__":
@@ -1513,12 +1530,17 @@ if __name__ == "__main__":
     PASSWORD = ""       # Adjust as needed
     DATABASE_NAME = "absensi_siswa"  # Replace with your database name
     SQL_FILE_PATH = str(Path(__file__).resolve().parent)+"\\assets\\db.sql"  # Replace with the path to your SQL file
+    # Port
+    MYSQL_PORT = 3306
+    BACKEND_PORT = 3000
 
-    # Step 1: Check and create database if necessary
+    # Path
+    MYSQL_BIN_PATH = str(Path(__file__).resolve().parent)+"\\mysql\\bin\\mysqld.exe"
+    MYSQL_CONFIG_PATH = str(Path(__file__).resolve().parent)+"\\mysql\\my.ini"
+    BACKEND_EXE_PATH = str(Path(__file__).resolve().parent)+"\\backend.exe"
+    start_mysql_if_needed()
     check_and_create_database(HOST, USER, PASSWORD, DATABASE_NAME, SQL_FILE_PATH)
-
-    # Step 2: Check and start backend server if necessary
-    check_and_start_backend()
+    start_backend_if_needed()
     show_frame(login_frame) 
 
     # # Jalankan aplikasi
