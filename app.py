@@ -45,6 +45,8 @@ def show_frame(frame,tambahan=""):
     for child in root.winfo_children():
         if isinstance(child, tk.Frame):
             child.pack_forget()
+    if frame == absen_frame:
+        nik_entry.focus_set()
     # Tampilkan frame yang diminta
     frame.pack(fill="both", expand=True)
 
@@ -379,7 +381,7 @@ def fetch_and_show_qr_code():
     try:
         # Konfigurasi headless browser menggunakan Chrome
         chrome_options = Options()
-        # chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument('--disable-dev-shm-usage')
 
@@ -470,16 +472,43 @@ def getabsenhariinikirim():
         "login": tokenlogin,
         "data":"g"
     }
-    response = requests.get("http://localhost:3000/getdatanotifikasi", data=payload)
-    dataabsenhariini = json.loads(response.text)
-    loadpesanwa()
-    for a in range(0,len(datapesanwa)):
-        arrpesankirim[a] = datapesanwa[a]["isi"]
-    for a in dataabsenhariini:
-        if is_valid_indonesian_number(str(a["no_ortu"])):
-            kirim_notifikasi_presensi(normalize_phone_number(a["no_ortu"]),a["nama"],a["status"],a["keterangan"],a["waktuhadir"])
+    # response = requests.get("http://localhost:3000/getdatanotifikasi", data=payload)
+    # dataabsenhariini = json.loads(response.text)
+    # loadpesanwa()
+    # for a in range(0,len(datapesanwa)):
+    #     arrpesankirim[a] = datapesanwa[a]["isi"]
+    # for a in dataabsenhariini:
+    #     if is_valid_indonesian_number(str(a["no_ortu"])):
+    #         kirim_notifikasi_presensi(normalize_phone_number(a["no_ortu"]),a["nama"],a["status"],a["keterangan"],a["waktuhadir"])
+    #     else:
+    #         print("Invalid Number Phone")
+    try:
+        response = requests.get("http://localhost:3000/getdatanotifikasi", data=payload)
+        dataabsenhariini = json.loads(response.text)
+
+        loadpesanwa()
+
+        for a in range(0, len(datapesanwa)):
+            arrpesankirim[a] = datapesanwa[a]["isi"]
+
+        total_kirim = 0
+        for a in dataabsenhariini:
+            nomor = str(a["no_ortu"])
+            if is_valid_indonesian_number(nomor):
+                kirim_notifikasi_presensi(normalize_phone_number(a["no_ortu"]),a["nama"],a["status"],a["keterangan"],a["waktuhadir"])
+                total_kirim += 1
+            else:
+                print("Invalid Number Phone")
+
+        # Tampilkan messagebox jika setidaknya satu notifikasi terkirim
+        if total_kirim > 0:
+            messagebox.showinfo("Notifikasi Dikirim", f"{total_kirim} pesan berhasil dikirim.")
         else:
-            print("Invalid Number Phone")
+            messagebox.showwarning("Tidak Ada yang Dikirim", "Tidak ada nomor valid untuk dikirim.")
+
+    except Exception as e:
+        messagebox.showerror("Kesalahan", f"Gagal mengirim notifikasi.\nError: {str(e)}")
+
 
 def on_key_release(e):
     global tokenlogin
