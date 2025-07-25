@@ -458,7 +458,7 @@ app.post("/insertlistsiswa", [
                 nama: siswa.nama,
                 no_ortu: siswa.no_ortu,
                 no_walas: siswa.no_walas,
-                kelas: siswa.kelas
+                kelas: siswa.kelas.toString().replace("-","")
             }));
 
             await ListSiswa.bulkCreate(siswaData);
@@ -475,7 +475,7 @@ app.post("/insertlistsiswa", [
             const absensiData = listsiswa.map(siswa => ({
                 nisn: siswa.nisn,
                 nama: siswa.nama,
-                kelas: siswa.kelas,
+                kelas: siswa.kelas.toString().replace("-",""),
                 tahunpelajaran: getlast.tahun,
                 status: 0,
                 untuktanggal: gettanggal(1)
@@ -524,7 +524,7 @@ app.post("/insertlistsiswa", [
                 nama: siswa.nama,
                 no_ortu: siswa.no_ortu,
                 no_walas: siswa.no_walas,
-                kelas: siswa.kelas
+                kelas: siswa.kelas.toString().replace("-","")
             }));
             await ListSiswa.bulkCreate(siswaData);
 
@@ -537,7 +537,7 @@ app.post("/insertlistsiswa", [
             const absensiData = listsiswa.map(siswa => ({
                 nisn: siswa.nisn,
                 nama: siswa.nama,
-                kelas: siswa.kelas,
+                kelas: siswa.kelas.toString().replace("-",""),
                 tahunpelajaran: currentYear,
                 status: 0,
                 untuktanggal: gettanggal(1)
