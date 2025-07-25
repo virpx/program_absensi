@@ -13,6 +13,13 @@ const { hash } = require('crypto');
 const { Op } = require('sequelize');
 const { QueryTypes } = require('sequelize');
 const PesanWA = require('./model/pesanwa.model');
+
+
+// const bodyParser = require("body-parser");
+
+// // Tambahkan batas besar request body
+// app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+// app.use(bodyParser.json({ limit: '10mb' }))
 /*
 - STATUS ABSEN:
 0 = ALPHA
@@ -36,7 +43,8 @@ function gettanggal(format) {
         return year;
     }
 }
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '100mb' })); // atau lebih besar jika perlu
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 app.get('/', async (req, res) => {
     const hashedPassword = await bcrypt.hash("smpn3warudarjo", 10);
     return res.send(hashedPassword)
@@ -401,6 +409,8 @@ app.post("/insertlistsiswa", [
     check('data')
         .notEmpty().withMessage('Data is required'),
 ], async (req, res) => {
+    console.log("✅ POST /insertlistsiswa diterima");
+    console.log("Body:", req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).send({
@@ -433,91 +443,123 @@ app.post("/insertlistsiswa", [
                 data: "err_tahunajar"
             })
         }
-    } else if(data2[0] == "goinsertsiswaforce"){
-        var databaru = []
+    } else if (data2[0] == "goinsertsiswaforce") {
+        console.log("➡️ goinsertsiswaforce dijalankan", new Date().toLocaleTimeString());
         try {
-            await ListSiswa.truncate()
-            listsiswa = JSON.parse(atob(data2[1]))
-            // console.log(listsiswa)
-            for (const iterator of listsiswa) {
-                await ListSiswa.create({
-                    nisn: iterator.nisn,
-                    nama: iterator.nama,
-                    no_ortu: iterator.no_ortu,
-                    no_walas: iterator.no_walas,
-                    kelas: iterator.kelas,
-                })
-                databaru.push(iterator.nisn)
-            }
-        } catch {
-            for (const iterator of databaru) {
-                await ListSiswa.destroy({
-                    where:{
-                        nisn:iterator
-                    }
-                })
-            }
+            // await ListSiswa.truncate();
+            await ListSiswa.destroy({ where: {}, truncate: true });
+
+            console.log("⬇️ Decoding Base64...");
+            listsiswa = JSON.parse(atob(data2[1]));
+            console.log("✅ Decoded listsiswa:", listsiswa.length, "data");
+
+            const siswaData = listsiswa.map(siswa => ({
+                nisn: siswa.nisn,
+                nama: siswa.nama,
+                no_ortu: siswa.no_ortu,
+                no_walas: siswa.no_walas,
+                kelas: siswa.kelas
+            }));
+
+            await ListSiswa.bulkCreate(siswaData);
+            console.log("✅ ListSiswa inserted", new Date().toLocaleTimeString());
+
+            await Absensi.destroy({
+                where: {
+                    untuktanggal: gettanggal(1)
+                }
+            });
+
+            const getlast = await TahunAjar.findOne({ order: [['tahun', 'DESC']] });
+
+            const absensiData = listsiswa.map(siswa => ({
+                nisn: siswa.nisn,
+                nama: siswa.nama,
+                kelas: siswa.kelas,
+                tahunpelajaran: getlast.tahun,
+                status: 0,
+                untuktanggal: gettanggal(1)
+            }));
+
+            await Absensi.bulkCreate(absensiData);
+            console.log("✅ Absensi updated", new Date().toLocaleTimeString());
+
+            return res.status(200).send({
+                success: 1,
+                data: "Berhasil menambahkan siswa"
+            });
+        } catch (err) {
+            console.error("❌ Gagal insert paksa:", err);
             return res.status(400).send({
                 success: 0,
                 data: "Error menambahkan siswa"
-            })
+            });
         }
-        return res.status(200).send({
-            success: 1,
-            data: "Berhasil menambahkan siswa"
-        })
-    }else if (data2[0] == "tambahtahunajar") {
-        var getlast = await TahunAjar.findOne({
-            order: [['tahun', 'DESC']]
-        })
-        if (getlast.tahun == gettanggal(3)) {
+    }
+    else if (data2[0] == "tambahtahunajar") {
+        console.log("➡️ tambahtahunajar dijalankan");
+
+        const getlast = await TahunAjar.findOne({ order: [['tahun', 'DESC']] });
+        if (getlast && getlast.tahun == gettanggal(3)) {
             return res.status(400).send({
                 success: 0,
                 data: "Belum saatnya tambah tahun pelajaran baru"
-            })
+            });
         }
-        currentYear = new Date().getFullYear();
-        await TahunAjar.create({
-            tahun: currentYear
-        })
-        var databaru = []
+
+        const currentYear = new Date().getFullYear();
+        await TahunAjar.create({ tahun: currentYear });
+
         try {
-            await ListSiswa.truncate()
-            listsiswa = JSON.parse(atob(data2[1]))
-            // console.log(listsiswa)
-            for (const iterator of listsiswa) {
-                await ListSiswa.create({
-                    nisn: iterator.nisn,
-                    nama: iterator.nama,
-                    no_ortu: iterator.no_ortu,
-                    no_walas: iterator.no_walas,
-                    kelas: iterator.kelas,
-                })
-                databaru.push(iterator.nisn)
-            }
-        } catch(err) {
-            for (const iterator of databaru) {
-                await ListSiswa.destroy({
-                    where:{
-                        nisn:iterator
-                    }
-                })
-            }
-            await TahunAjar.destroy({
-                where:{
-                    tahun:currentYear
+            await ListSiswa.truncate();
+
+            // const listsiswa = JSON.parse(atob(data2[1]));
+            console.log("⬇️ Decoding Base64...");
+            listsiswa = JSON.parse(atob(data2[1]));
+            console.log("✅ Decoded listsiswa:", listsiswa.length, "data");
+
+
+            const siswaData = listsiswa.map(siswa => ({
+                nisn: siswa.nisn,
+                nama: siswa.nama,
+                no_ortu: siswa.no_ortu,
+                no_walas: siswa.no_walas,
+                kelas: siswa.kelas
+            }));
+            await ListSiswa.bulkCreate(siswaData);
+
+            await Absensi.destroy({
+                where: {
+                    untuktanggal: gettanggal(1)
                 }
-            })
+            });
+
+            const absensiData = listsiswa.map(siswa => ({
+                nisn: siswa.nisn,
+                nama: siswa.nama,
+                kelas: siswa.kelas,
+                tahunpelajaran: currentYear,
+                status: 0,
+                untuktanggal: gettanggal(1)
+            }));
+            await Absensi.bulkCreate(absensiData);
+
+            return res.status(200).send({
+                success: 1,
+                data: "Berhasil menambahkan siswa"
+            });
+
+        } catch (err) {
+            console.error("❌ Gagal saat tambah tahun ajar:", err);
+            await TahunAjar.destroy({ where: { tahun: currentYear } });
+
             return res.status(400).send({
                 success: 0,
                 data: "Error menambahkan siswa"
-            })
+            });
         }
-        return res.status(200).send({
-            success: 1,
-            data: "Berhasil menambahkan siswa"
-        })
-    } else {
+    }
+    else {
         return res.status(400).send({
             success: 0,
             data: "Invalid Data"

@@ -545,6 +545,7 @@ nik_entry = tk.Entry(
 )
 
 nik_entry.place(relx=0.5, rely=0.4, anchor="center", width=200, height=30)  # Ukuran dan posisi
+nik_entry.focus_set()
 
 # Bind event key release pada entry
 nik_entry.bind("<KeyRelease>", on_key_release)
@@ -838,59 +839,201 @@ def loadexcel():
 
     except Exception as e:
         messagebox.showerror("Error", f"Failed to load file: {e}")
+
 def savedata():
-    payload = {
-        "login": tokenlogin,
-        "data":"get_backup_data"
-    }
-    response = requests.post("http://localhost:3000/backupkelas9", data=payload)
-    response = json.loads(response.text)
-    if response["success"] == 1:
-        df = pd.DataFrame(response["data"]["list"])
-        output_file = "Backup Kelas 9 "+str(response["data"]["tahunajar"])+".xlsx"
-        df.to_excel(pilih_folder("Tempat Simpan File Backup Kelas 9")+"/"+output_file, index=False)
+    if base64save is None:
+        messagebox.showerror("Gagal", "Silakan load file Excel terlebih dahulu.")
+        return
+    if not tokenlogin:
+        messagebox.showerror("Gagal", "Token login tidak ditemukan.")
+        return
+
+    print("✅ savedata() dipanggil")
+    print("Token login:", tokenlogin)
+    print("Potongan Base64:", base64save[:100])
+
+    # === Step 1: Backup data lama Kelas 9 ===
+    try:
         payload = {
             "login": tokenlogin,
-            "data":"go_insert_siswa#"+base64save
+            "data": "get_backup_data"
         }
-        response = requests.post("http://localhost:3000/insertlistsiswa", data=payload)
-        response = json.loads(response.text)
-        if response["success"] == 1:
-            messagebox.showinfo("Success", "Berhasil Menambahkan Data")
-        else:
-            if response["data"] == "err_tahunajar":
-                tanyabuat = messagebox.askyesno("Konfirmasi", "Apakah ingin membuat tahun ajar baru?")
-                if tanyabuat:
-                    payload = {
-                        "login": tokenlogin,
-                        "data":"tambahtahunajar#"+base64save
-                    }
-                    response = requests.post("http://localhost:3000/insertlistsiswa", data=payload)
-                    response = json.loads(response.text)
-                    if response["success"] == 1:
-                        messagebox.showinfo("Success", "Berhasil Menambahkan Data")
+        response = requests.post("http://localhost:3000/backupkelas9", data=payload)
+        response_json = response.json()
+        print("Response backupkelas9:", response_json)
+        # try:
+        #     response_json = response.json()
+        #     print("✅ Response insertlistsiswa:", response_json)
+        # except Exception as e:
+        #     print("❌ Gagal parsing JSON:", e)
+        #     print("Response:", response.text[:500])
 
-                        tree.delete(*tree.get_children())
-                        show_frame(databases_frame)
-                    else:
-                        messagebox.showwarning("Error", response["data"])
-            elif response["data"] == "err_belum_saatnya":
-                tanyabuat = messagebox.askyesno("Konfirmasi", "Belum saatnya melakukan insert data siswa, ingin tetap lanjutkan?")
+    except Exception as e:
+        messagebox.showerror("Error", f"Gagal menghubungi server backup: {e}")
+        return
+
+    if response_json.get("success") == 1:
+        try:
+            df = pd.DataFrame(response_json["data"]["list"])
+            output_file = "Backup Kelas 9 " + str(response_json["data"]["tahunajar"]) + ".xlsx"
+            folder = pilih_folder("Tempat Simpan File Backup Kelas 9")
+            df.to_excel(folder + "/" + output_file, index=False)
+        except Exception as e:
+            messagebox.showwarning("Backup Gagal", f"Gagal menyimpan backup: {e}")
+
+        # === Step 2: Coba insert siswa ===
+        try:
+            payload = {
+                "login": tokenlogin,
+                "data": "go_insert_siswa#" + base64save
+            }
+            response = requests.post("http://localhost:3000/insertlistsiswa", json=payload)
+            # response_json = response.json()
+            # print("Response insertlistsiswa:", response_json)
+            try:
+                response_json = response.json()
+                print("✅ Response insertlistsiswa:", response_json)
+            except Exception as e:
+                print("❌ Gagal parsing JSON:", e)
+                print("Response:", response.text[:500])
+        except Exception as e:
+            messagebox.showerror("Error", f"Gagal menghubungi server insert: {e}")
+            return
+
+        if response_json.get("success") == 1:
+            messagebox.showinfo("Success", "Berhasil Menambahkan Data")
+            tree.delete(*tree.get_children())
+            show_frame(databases_frame)
+        else:
+            if response_json["data"] == "err_tahunajar":
+                tanyabuat = messagebox.askyesno("Konfirmasi", "Tahun ajar belum dibuat. Tambah tahun ajar baru?")
                 if tanyabuat:
-                    payload = {
-                        "login": tokenlogin,
-                        "data":"goinsertsiswaforce#"+base64save
-                    }
-                    response = requests.post("http://localhost:3000/insertlistsiswa", data=payload)
-                    response = json.loads(response.text)
-                    if response["success"] == 1:
+                    try:
+                        payload = {
+                            "login": tokenlogin,
+                            "data": "tambahtahunajar#" + base64save
+                        }
+                        response = requests.post("http://localhost:3000/insertlistsiswa", json=payload)
+                        response_json = response.json()
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Gagal menambahkan tahun ajar: {e}")
+                        return
+
+                    if response_json.get("success") == 1:
                         messagebox.showinfo("Success", "Berhasil Menambahkan Data")
                         tree.delete(*tree.get_children())
                         show_frame(databases_frame)
                     else:
-                        messagebox.showwarning("Error", response["data"])
+                        messagebox.showwarning("Error", response_json["data"])
+
+            elif response_json["data"] == "err_belum_saatnya":
+                tanyabuat = messagebox.askyesno("Konfirmasi", "Belum saatnya insert siswa. Tetap lanjutkan (paksa)?")
+                if tanyabuat:
+                    try:
+                        payload = {
+                            "login": tokenlogin,
+                            "data": "goinsertsiswaforce#" + base64save
+                        }
+                        response = requests.post("http://localhost:3000/insertlistsiswa", json=payload)
+                        response_json = response.json()
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Gagal paksa insert siswa: {e}")
+                        return
+
+                    if response_json.get("success") == 1:
+                        messagebox.showinfo("Success", "Berhasil Menambahkan Data")
+                        tree.delete(*tree.get_children())
+                        show_frame(databases_frame)
+                    else:
+                        messagebox.showwarning("Error", response_json["data"])
+            else:
+                messagebox.showwarning("Error", response_json["data"])
     else:
-        messagebox.showwarning("Error", response["data"])
+        messagebox.showwarning("Error", response_json.get("data", "Gagal mengambil data backup"))
+
+
+# def savedata():
+#     if base64save is None:
+#         messagebox.showerror("Gagal", "Silakan load file Excel terlebih dahulu.")
+#         return
+#     if not tokenlogin:
+#         messagebox.showerror("Gagal", "Token login tidak ditemukan.")
+#         return
+
+#     print("✅ savedata() dipanggil")
+#     print("Token login:", tokenlogin)
+#     print("Potongan Base64:", base64save[:100])  # tampilkan sebagian isi base64
+
+#     payload = {
+#         "login": tokenlogin,
+#         "data":"get_backup_data"
+#     }
+#     # try:
+#     #     response = requests.post("http://localhost:3000/backupkelas9", data=payload)
+#     #     print("Response backupkelas9:", response.text)
+#     # except Exception as e:
+#     #     print("❌ Error saat request backupkelas9:", e)
+#     #     return
+#     # # response = requests.post("http://localhost:3000/backupkelas9", data=payload)
+#     # # response = json.loads(response.text)
+#     response = requests.post("http://localhost:3000/backupkelas9", data=payload)
+#     response_json = response.json()
+#     if response_json["success"] == 1:
+#         df = pd.DataFrame(response_json["data"]["list"])
+#         output_file = "Backup Kelas 9 "+str(response_json["data"]["tahunajar"])+".xlsx"
+#         df.to_excel(pilih_folder("Tempat Simpan File Backup Kelas 9")+"/"+output_file, index=False)
+#         payload = {
+#             "login": tokenlogin,
+#             "data":"go_insert_siswa#"+base64save
+#         }
+#         print("Mengirim data insertlistsiswa...")
+#         # try:
+#         #     response = requests.post("http://localhost:3000/insertlistsiswa", data=payload)
+#         #     print("Response insertlistsiswa:", response.text)
+#         # except Exception as e:
+#         #     print("❌ Error saat request insertlistsiswa:", e)
+#         #     return
+#         response = requests.post("http://localhost:3000/insertlistsiswa", data=payload)
+#         response_json = response.json()
+#         if response_json["success"] == 1:
+#             messagebox.showinfo("Success", "Berhasil Menambahkan Data")
+#         else:
+#             if response_json["data"] == "err_tahunajar":
+#                 tanyabuat = messagebox.askyesno("Konfirmasi", "Apakah ingin membuat tahun ajar baru?")
+#                 if tanyabuat:
+#                     payload = {
+#                         "login": tokenlogin,
+#                         "data":"tambahtahunajar#"+base64save
+#                     }
+#                     response = requests.post("http://localhost:3000/insertlistsiswa", data=payload)
+#                     response_json = response.json()
+#                     if response_json["success"] == 1:
+#                     # if response["success"] == 1:
+#                         messagebox.showinfo("Success", "Berhasil Menambahkan Data")
+
+#                         tree.delete(*tree.get_children())
+#                         show_frame(databases_frame)
+#                     else:
+#                         messagebox.showwarning("Error", response_json["data"])
+#             elif response_json["data"] == "err_belum_saatnya":
+#                 tanyabuat = messagebox.askyesno("Konfirmasi", "Belum saatnya melakukan insert data siswa, ingin tetap lanjutkan?")
+#                 if tanyabuat:
+#                     payload = {
+#                         "login": tokenlogin,
+#                         "data":"goinsertsiswaforce#"+base64save
+#                     }
+#                     response = requests.post("http://localhost:3000/insertlistsiswa", data=payload)
+#                     response_json = response.json()
+#                     if response_json["success"] == 1:
+#                     # response = json.loads(response.text)
+#                     # if response["success"] == 1:
+#                         messagebox.showinfo("Success", "Berhasil Menambahkan Data")
+#                         tree.delete(*tree.get_children())
+#                         show_frame(databases_frame)
+#                     else:
+#                         messagebox.showwarning("Error", response_json["data"])
+#     else:
+#         messagebox.showwarning("Error", response_json["data"])
 
 # Frame utama
 input_frame = tk.Frame(root, bg="white")
