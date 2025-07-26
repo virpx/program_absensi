@@ -55,7 +55,7 @@ tokenlogin = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzY2NDcyNDAsImRhd
 # Fungsi untuk mengecek login setiap beberapa detik
 def check_login_status():
     if is_logged_in():
-        show_frame(absen_frame)
+        show_frame(kirim_frame)
     else:
         # Cek lagi dalam 5 detik
         root.after(5000, check_login_status)
@@ -278,11 +278,11 @@ create_rounded_button(
 
 
 # Fungsi untuk menampilkan QR Code dan cek login       
-def from_menu_to_qrcode():
+def from_menu_to_absensi():
     requests.get("http://localhost:3000/generateabsen")
-    show_frame(qr_frame)
-    fetch_and_show_qr_code()
-    check_login_status()
+    show_frame(absen_frame)
+    # fetch_and_show_qr_code()
+    # check_login_status()
 
 menu_frame = tk.Frame(root, bg="white")
 
@@ -360,7 +360,7 @@ except FileNotFoundError:
 # Tombol Absensi Siswa di halaman Menu
 absensi = tk.Canvas(kanan_frame, width=110, height=50, bg="white", highlightthickness=0)
 absensi.place(relx=0.50, rely=0.85, anchor="center") 
-create_rounded_button(absensi, x=5, y=5, width=100, height=40, radius=20, text="Absensi Siswa", command=from_menu_to_qrcode)
+create_rounded_button(absensi, x=5, y=5, width=100, height=40, radius=20, text="Absensi Siswa", command=from_menu_to_absensi)
 
 # Tombol Ubah Pesan di pojok kiri bawah pada bawah_frame
 ubah_pesan_canvas = tk.Canvas(bawah_frame, width=120, height=50, bg="white", highlightthickness=0)
@@ -503,8 +503,10 @@ def getabsenhariinikirim():
         # Tampilkan messagebox jika setidaknya satu notifikasi terkirim
         if total_kirim > 0:
             messagebox.showinfo("Notifikasi Dikirim", f"{total_kirim} pesan berhasil dikirim.")
+            show_frame(menu_frame)
         else:
             messagebox.showwarning("Tidak Ada yang Dikirim", "Tidak ada nomor valid untuk dikirim.")
+            show_frame(menu_frame)
 
     except Exception as e:
         messagebox.showerror("Kesalahan", f"Gagal mengirim notifikasi.\nError: {str(e)}")
@@ -579,6 +581,12 @@ nik_entry.focus_set()
 # Bind event key release pada entry
 nik_entry.bind("<KeyRelease>", on_key_release)
 
+def from_menu_to_qrcode():
+    # requests.get("http://localhost:3000/generateabsen")
+    show_frame(qr_frame)
+    fetch_and_show_qr_code()
+    check_login_status()
+
 # Membuat Canvas untuk tombol di section kanan
 back_canvas = tk.Canvas(section_kanan, width=100, height=50, bg="white", highlightthickness=0)
 back_canvas.place(relx=0.5, rely=0.6, anchor="center")  # Posisi di tengah secara horizontal, sedikit di bawah tengah secara vertikal
@@ -589,7 +597,21 @@ wa_canvas = tk.Canvas(section_kanan, width=140, height=50, bg="white", highlight
 wa_canvas.place(relx=0.5, rely=0.75, anchor="center")  # Posisi di tengah, sedikit lebih bawah dari tombol "Back"
 
 # Membuat tombol "KIRIM WA" melingkar
-create_rounded_button(wa_canvas, x=5, y=5, width=130, height=40, radius=20, text="KIRIM WA", command=lambda: getabsenhariinikirim())
+create_rounded_button(wa_canvas, x=5, y=5, width=130, height=40, radius=20, text="MENU KIRIM WA", command=from_menu_to_qrcode)
+
+kirim_frame = tk.Frame(root,bg="white")
+
+# Membuat Canvas untuk tombol di section kanan
+exits_canvas = tk.Canvas(kirim_frame, width=100, height=50, bg="white", highlightthickness=0)
+exits_canvas.place(relx=0.5, rely=0.6, anchor="center")  # Posisi di tengah secara horizontal, sedikit di bawah tengah secara vertikal
+
+# Membuat tombol "Back" melingkar
+create_rounded_button(exits_canvas, x=5, y=5, width=90, height=40, radius=20, text="Back", command=lambda: show_frame(menu_frame))
+waweb_canvas = tk.Canvas(kirim_frame, width=140, height=50, bg="white", highlightthickness=0)
+waweb_canvas.place(relx=0.5, rely=0.75, anchor="center")  # Posisi di tengah, sedikit lebih bawah dari tombol "Back"
+
+# Membuat tombol "KIRIM WA" melingkar
+create_rounded_button(waweb_canvas, x=5, y=5, width=130, height=40, radius=20, text="KIRIM WA", command=lambda: getabsenhariinikirim())
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # Frame Database # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
