@@ -1710,7 +1710,7 @@ if __name__ == "__main__":
     MYSQL_BIN_PATH = str(Path(__file__).resolve().parent)+"\\mysql\\bin\\mysqld.exe"
     MYSQL_CONFIG_PATH = str(Path(__file__).resolve().parent)+"\\mysql\\my.ini"
     BACKEND_EXE_PATH = str(Path(__file__).resolve().parent)+"\\backend.exe"
-    start_mysql_if_needed()
+    # start_mysql_if_needed()
     check_and_create_database(HOST, USER, PASSWORD, DATABASE_NAME, SQL_FILE_PATH)
     start_backend_if_needed()
     show_frame(login_frame) 

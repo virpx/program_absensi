@@ -1,6 +1,6 @@
 const express = require('express')
 const app = express()
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const port = 3000
 var jwt = require('jsonwebtoken');
 const NodeRSA = require('node-rsa');
